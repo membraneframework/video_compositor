@@ -1,4 +1,6 @@
+use log::error;
 use std::io;
+use std::path::PathBuf;
 
 use crate::{cef::*, cef_ref::CefRefData, cef_string::CefString, main_args::MainArgs};
 
@@ -26,11 +28,13 @@ impl Context {
     pub fn new<A: App>(app: A, settings: Settings) -> Result<Self, ContextError> {
         #[cfg(target_os = "macos")]
         {
-            let framework_path = std::env::current_exe()?
-                .parent()
-                .unwrap()
-                .join("video_compositor.app")
-                .join("Contents")
+            let executable_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
+            let contents_path = if cfg!(feature = "standalone") {
+                executable_dir.join("..")
+            } else {
+                executable_dir.join("video_compositor.app").join("Contents")
+            };
+            let framework_path = contents_path
                 .join("Frameworks")
                 .join("Chromium Embedded Framework.framework")
                 .join("Chromium Embedded Framework");
@@ -72,8 +76,10 @@ impl Context {
         Ok(Context { _priv: () })
     }
 
+    // Paths are taken from:
+    // https://bitbucket.org/chromiumembedded/cef/src/64c2dc13cadd53ea74085ccc8c7120b1b8708236/libcef_dll/wrapper/cef_library_loader_mac.mm?at=master#lines-16:19
     #[cfg(target_os = "macos")]
-    fn load_framework(framework_path: std::path::PathBuf) -> Result<(), ContextError> {
+    fn load_framework(framework_path: PathBuf) -> Result<(), ContextError> {
         use std::ffi::CString;
         let framework_path = CString::new(framework_path.display().to_string()).unwrap();
         let is_loaded = unsafe { chromium_sys::cef_load_library(framework_path.as_ptr()) };

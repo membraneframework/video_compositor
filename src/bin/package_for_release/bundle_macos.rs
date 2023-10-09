@@ -32,7 +32,7 @@ fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
     let root_dir_str = env!("CARGO_MANIFEST_DIR");
     let root_dir: PathBuf = root_dir_str.into();
     let build_dir = root_dir.join(format!("target/{target}/release"));
-    let tmp_dir = root_dir.join("video_compositor");
+    let bundle_dir = root_dir.join("video_compositor.app");
 
     info!("Build main_process binary.");
     utils::cargo_build("main_process", target)?;
@@ -40,16 +40,25 @@ fn bundle_app(target: &'static str, output_name: &'static str) -> Result<()> {
     utils::cargo_build("process_helper", target)?;
 
     info!("Create macOS bundle.");
-    cef::bundle_app(&build_dir, &tmp_dir.join("video_compositor.app"))?;
+    cef::bundle_app(&build_dir, &bundle_dir)?;
 
     fs::copy(
         build_dir.join("main_process"),
-        tmp_dir.join("video_compositor"),
+        bundle_dir
+            .join("Contents")
+            .join("MacOS")
+            .join("video_compositor"),
     )?;
 
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")
-        .args(["-C", root_dir_str, "-czvf", output_name, "video_compositor"])
+        .args([
+            "-C",
+            root_dir_str,
+            "-czvf",
+            output_name,
+            "video_compositor.app",
+        ])
         .spawn()?
         .wait()?
         .code();

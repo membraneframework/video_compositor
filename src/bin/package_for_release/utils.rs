@@ -8,6 +8,8 @@ pub fn cargo_build(bin: &'static str, target: &'static str) -> Result<()> {
         "--release",
         "--target",
         target,
+        "--features",
+        "standalone",
         "--locked",
         "--bin",
         bin,

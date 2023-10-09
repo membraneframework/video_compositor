@@ -93,6 +93,10 @@ fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
 
 #[cfg(target_os = "macos")]
 fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
+    if cfg!(feature = "standalone") {
+        return (CefString::empty_raw(), CefString::empty_raw());
+    }
+
     use std::path::PathBuf;
 
     let current_exe = env::current_exe().unwrap();
