@@ -46,10 +46,10 @@ impl TryFrom<Node> for NodeSpec {
         let spec = Self {
             node_id: node.node_id.into(),
             input_pads: node
-                .input_pads
+                .children
                 .unwrap_or_default()
                 .into_iter()
-                .map(Into::into)
+                .map(|n| n.node_id.into())
                 .collect(),
             fallback_id: node.fallback_id.map(Into::into),
             params,

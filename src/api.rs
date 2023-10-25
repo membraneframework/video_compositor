@@ -13,7 +13,7 @@ use crate::{
     rtp_sender::{self, RtpSender},
     types::{
         self, InitOptions, InputId, OutputId, RegisterInputRequest, RegisterOutputRequest,
-        RegisterRequest, RendererId, Scene,
+        RegisterRequest, RendererId,
     },
 };
 
@@ -25,9 +25,14 @@ pub enum Request {
     Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(types::Scene),
+    UpdateScene(UpdateScene),
     Query(QueryRequest),
     Start,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateScene {
+    pub scenes: Vec<types::Scene>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -44,7 +49,6 @@ pub enum UnregisterRequest {
 #[serde(tag = "query", rename_all = "snake_case")]
 pub enum QueryRequest {
     WaitForNextFrame { input_id: InputId },
-    Scene,
     Inputs,
     Outputs,
 }
@@ -53,7 +57,6 @@ pub enum QueryRequest {
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    Scene(Scene),
     Inputs { inputs: Vec<InputInfo> },
     Outputs { outputs: Vec<OutputInfo> },
 }
@@ -127,14 +130,6 @@ impl Api {
                 );
                 Ok(ResponseHandler::DeferredResponse(receiver))
             }
-            QueryRequest::Scene => Ok(ResponseHandler::Response(Response::Scene(
-                self.pipeline
-                    .renderer()
-                    .scene_spec()
-                    .as_ref()
-                    .clone()
-                    .into(),
-            ))),
             QueryRequest::Inputs => {
                 let inputs = self
                     .pipeline

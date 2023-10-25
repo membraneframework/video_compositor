@@ -9,8 +9,8 @@ use super::*;
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Node {
     pub node_id: NodeId,
-    pub input_pads: Option<Vec<NodeId>>,
-    pub fallback_id: Option<NodeId>,
+    pub children: Option<Vec<Node>>,
+    pub fallback_id: Option<NodeId>, // TODO: remove field
 
     #[serde(flatten)]
     pub params: NodeParams,

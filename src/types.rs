@@ -41,14 +41,8 @@ pub struct InputId(Arc<str>);
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 pub struct Scene {
-    pub nodes: Vec<Node>,
-    pub outputs: Vec<Output>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
-pub struct Output {
     pub output_id: OutputId,
-    pub input_pad: NodeId,
+    pub root: Node,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
