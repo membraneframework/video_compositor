@@ -5,6 +5,7 @@ pub(crate) mod registry;
 pub(crate) mod transformations;
 pub(crate) mod utils;
 pub(crate) mod wgpu;
+pub(crate) mod scene;
 
 mod event_loop;
 mod frame_set;

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use compositor_chromium::cef::RenderHandler;
 use compositor_common::renderer_spec::FallbackStrategy;
 
 use compositor_common::scene::constraints::NodeConstraints;
@@ -7,6 +8,7 @@ use compositor_common::scene::{NodeId, NodeParams, NodeSpec, Resolution};
 
 use crate::error::{CreateNodeError, UpdateSceneError};
 
+use crate::transformations::layout::LayoutNode;
 use crate::transformations::shader::node::ShaderNode;
 
 use crate::transformations::transition::TransitionNode;
@@ -26,6 +28,7 @@ pub enum RenderNode {
     Image(ImageNode),
     Builtin(BuiltinNode),
     Transition(TransitionNode),
+    Layout(LayoutNode),
     InputStream,
 }
 
@@ -102,6 +105,7 @@ impl RenderNode {
                 // Nothing to do, textures on input nodes should be populated
                 // at the start of render loop
             }
+            RenderNode::Layout(_) => todo!(),
         }
     }
 
@@ -115,6 +119,7 @@ impl RenderNode {
             RenderNode::InputStream => None,
             RenderNode::Builtin(node) => node.resolution_from_spec(),
             RenderNode::Transition(node) => node.resolution(),
+            RenderNode::Layout(node) => None,
         }
     }
 
@@ -144,6 +149,7 @@ impl RenderNode {
             RenderNode::Builtin(builtin_node) => builtin_node.fallback_strategy(),
             RenderNode::InputStream => FallbackStrategy::NeverFallback,
             RenderNode::Transition(_) => FallbackStrategy::NeverFallback,
+            RenderNode::Layout(_) => FallbackStrategy::NeverFallback,
         }
     }
 }

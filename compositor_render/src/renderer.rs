@@ -6,7 +6,6 @@ use compositor_common::{
     Framerate,
 };
 
-use crate::wgpu::{WgpuCtx, WgpuErrorScope};
 use crate::{
     error::{InitRendererEngineError, RenderSceneError, UpdateSceneError},
     transformations::{
@@ -14,12 +13,16 @@ use crate::{
     },
     FrameSet, WebRendererOptions,
 };
+use crate::{
+    scene::{Scene, SceneState},
+    wgpu::{WgpuCtx, WgpuErrorScope},
+};
 
 use self::{
     node::NodeSpecExt,
     render_loop::{populate_inputs, read_outputs, run_transforms},
     renderers::Renderers,
-    scene::Scene,
+    scene::RenderGraph,
 };
 
 pub mod node;
@@ -40,8 +43,7 @@ pub struct Renderer {
     pub text_renderer_ctx: TextRendererCtx,
     pub chromium_context: Arc<ChromiumContext>,
 
-    pub scene: Scene,
-    pub scene_spec: Arc<SceneSpec>,
+    pub scene: SceneState,
 
     pub(crate) renderers: Renderers,
 
@@ -72,14 +74,15 @@ impl Renderer {
             wgpu_ctx: wgpu_ctx.clone(),
             text_renderer_ctx: TextRendererCtx::new(),
             chromium_context: Arc::new(ChromiumContext::new(opts.web_renderer, opts.framerate)?),
-            scene: Scene::empty(),
             renderers: Renderers::new(wgpu_ctx)?,
-            scene_spec: Arc::new(SceneSpec {
-                nodes: vec![],
-                outputs: vec![],
-            }),
 
             stream_fallback_timeout: opts.stream_fallback_timeout,
+            scene: SceneState {
+                root: todo!(),
+                last_render: todo!(),
+                pts_last_render: todo!(),
+                last_update: todo!(),
+            },
         })
     }
 
@@ -104,9 +107,9 @@ impl Renderer {
 
         let scope = WgpuErrorScope::push(&ctx.wgpu_ctx.device);
 
-        populate_inputs(ctx, &mut self.scene, &mut inputs).unwrap();
-        run_transforms(ctx, &mut self.scene, inputs.pts).unwrap();
-        let frames = read_outputs(ctx, &mut self.scene, inputs.pts).unwrap();
+        populate_inputs(ctx, &mut self.render_scene, &mut inputs).unwrap();
+        run_transforms(ctx, &mut self.render_scene, inputs.pts).unwrap();
+        let frames = read_outputs(ctx, &mut self.render_scene, inputs.pts).unwrap();
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
@@ -116,8 +119,7 @@ impl Renderer {
         })
     }
 
-    pub fn update_scene(&mut self, scene_spec: Arc<SceneSpec>) -> Result<(), UpdateSceneError> {
-        self.validate_constraints(&scene_spec)?;
+    pub fn update_scene(&mut self, scene_spec: Vec<Scene>) -> Result<(), UpdateSceneError> {
         self.scene.update(
             &RenderCtx {
                 wgpu_ctx: &self.wgpu_ctx,
@@ -126,9 +128,8 @@ impl Renderer {
                 renderers: &self.renderers,
                 stream_fallback_timeout: self.stream_fallback_timeout,
             },
-            &scene_spec,
+            scene_spec,
         )?;
-        self.scene_spec = scene_spec;
         Ok(())
     }
 

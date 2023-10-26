@@ -9,13 +9,13 @@ use crate::{error::UpdateSceneError, wgpu::WgpuErrorScope};
 use super::NodeRenderPass;
 use super::{node::Node, RenderCtx};
 
-pub struct Scene {
+pub struct RenderGraph {
     pub nodes: SceneNodesSet,
     pub outputs: HashMap<OutputId, (NodeId, OutputTexture)>,
     pub inputs: HashMap<InputId, InputTexture>,
 }
 
-impl Scene {
+impl RenderGraph {
     pub fn empty() -> Self {
         Self {
             nodes: SceneNodesSet::new(),

@@ -13,7 +13,7 @@ use log::error;
 use crate::{
     renderer::{
         node::Node,
-        scene::{InternalSceneError, Scene, SceneNodesSet},
+        scene::{InternalSceneError, RenderGraph, SceneNodesSet},
         RenderCtx,
     },
     FrameSet,
@@ -21,7 +21,7 @@ use crate::{
 
 pub(super) fn populate_inputs(
     ctx: &RenderCtx,
-    scene: &mut Scene,
+    scene: &mut RenderGraph,
     frame_set: &mut FrameSet<InputId>,
 ) -> Result<(), InternalSceneError> {
     for (input_id, input_textures) in &mut scene.inputs {
@@ -59,7 +59,7 @@ pub(super) fn populate_inputs(
 
 pub(super) fn read_outputs(
     ctx: &RenderCtx,
-    scene: &mut Scene,
+    scene: &mut RenderGraph,
     pts: Duration,
 ) -> Result<HashMap<OutputId, Frame>, InternalSceneError> {
     let mut pending_downloads = Vec::with_capacity(scene.outputs.len());
@@ -124,7 +124,7 @@ pub(super) fn read_outputs(
 
 pub(super) fn run_transforms(
     ctx: &mut RenderCtx,
-    scene: &mut Scene,
+    scene: &mut RenderGraph,
     pts: Duration,
 ) -> Result<(), InternalSceneError> {
     let mut already_rendered = HashSet::new();

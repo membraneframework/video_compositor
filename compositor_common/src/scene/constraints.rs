@@ -1,11 +1,8 @@
-use crate::{
-    error::UnsatisfiedConstraintsError,
-    scene::{NodeId, SceneSpec},
-};
+use crate::{error::UnsatisfiedConstraintsError, scene::NodeId};
 
 use self::input_count::InputCountConstraint;
 
-use super::NodeSpec;
+use super::{NodeSpec, SceneSpec};
 
 pub mod input_count;
 
