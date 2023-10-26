@@ -62,6 +62,9 @@ impl TryFrom<UpdateScene> for scene::SceneSpec {
     // very temporary and inefficient
     fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
         fn try_from_node(node: Node) -> Result<Vec<scene::NodeSpec>, TypeError> {
+            if let node::NodeParams::InputStream(_) = node.params {
+                return Ok(vec![]);
+            }
             let spec = node.clone().try_into()?;
             let child_specs: Vec<Vec<scene::NodeSpec>> = node
                 .children

@@ -22,6 +22,7 @@ impl TryFrom<Node> for NodeSpec {
 
     fn try_from(node: Node) -> Result<Self, Self::Error> {
         let params = match node.params {
+            NodeParams::InputStream(_) => todo!("input stream does not have it's own entity"),
             NodeParams::WebRenderer(node) => node.into(),
             NodeParams::Shader(node) => node.into(),
             NodeParams::Image(node) => node.into(),
@@ -51,7 +52,7 @@ impl TryFrom<Node> for NodeSpec {
                 .into_iter()
                 .map(|n| n.node_id.into())
                 .collect(),
-            fallback_id: node.fallback_id.map(Into::into),
+            fallback_id: None,
             params,
         };
         Ok(spec)

@@ -107,6 +107,7 @@ fn start_example_client_code() -> Result<()> {
                 "shader_id": "shader_example_1",
                 "children": [
                     {
+                        "node_id": "input_1",
                         "type": "input_stream",
                         "input_id": "input_1",
                     }

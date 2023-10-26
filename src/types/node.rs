@@ -10,7 +10,6 @@ use super::*;
 pub struct Node {
     pub node_id: NodeId,
     pub children: Option<Vec<Node>>,
-    pub fallback_id: Option<NodeId>, // TODO: remove field
 
     #[serde(flatten)]
     pub params: NodeParams,
@@ -19,6 +18,7 @@ pub struct Node {
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum NodeParams {
+    InputStream(InputStream),
     WebRenderer(WebRenderer),
     Shader(Shader),
     Image(Image),
@@ -42,6 +42,11 @@ pub enum NodeParams {
     MirrorImage(MirrorImage),
     #[serde(rename = "builtin:corners_rounding")]
     CornersRounding(CornersRounding),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct InputStream {
+    pub input_id: NodeId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
