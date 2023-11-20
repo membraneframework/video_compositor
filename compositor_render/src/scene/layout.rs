@@ -29,7 +29,7 @@ impl layout::LayoutProvider for LayoutNode {
     fn layouts(
         &mut self,
         pts: std::time::Duration,
-        inputs: Vec<Option<Resolution>>,
+        inputs: &[Option<Resolution>],
     ) -> NestedLayout {
         self.root.component.update_state(&inputs);
         self.root.layout(pts)
