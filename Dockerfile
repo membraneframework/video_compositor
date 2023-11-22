@@ -32,7 +32,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG USERNAME=compositor
 
 ENV DEBIAN_FRONTEND=noninteractive
-#ENV DISPLAY=:99
+ENV DISPLAY=:99
 #ENV XDG_RUNTIME_DIR=/home/$USERNAME/.cache/xdgr
 ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility
 
@@ -43,6 +43,7 @@ ENV LD_LIBRARY_PATH=/home/$USERNAME/video_compositor/lib
 RUN apt-get update -y -qq && \
   apt-get install -y \
     sudo adduser ffmpeg \
+    xvfb \
     libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 && \
   rm -rf /var/lib/apt/lists/*
 

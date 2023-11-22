@@ -8,7 +8,7 @@ use std::{
 use compositor_chromium::cef;
 use compositor_common::{error::ErrorStack, scene::Resolution};
 use crossbeam_channel::{Receiver, Sender};
-use log::error;
+use log::{error, info};
 
 use crate::renderer::render_graph::NodeId;
 use crate::renderer::RegisterCtx;
@@ -54,12 +54,15 @@ impl ChromiumSenderThread {
     }
 
     fn run(&mut self) {
-        let Ok(browser) = self
+        let browser = match self
             .chromium_ctx
             .start_browser(&self.url, self.browser_client.clone())
-        else {
-            error!("Couldn't start browser for {}", self.url);
-            return;
+        {
+            Ok(browser) => browser,
+            Err(err) => {
+                error!("Couldn't start browser for {}\n{:#?}", self.url, err);
+                return;
+            }
         };
 
         let mut state = ThreadState::new(browser, self.chromium_ctx.instance_id());
@@ -68,15 +71,23 @@ impl ChromiumSenderThread {
                 ChromiumSenderMessage::EmbedSources {
                     node_id,
                     resolutions,
-                } => self.embed_frames(&mut state, node_id, resolutions),
+                } => {
+                    info!("embed sources");
+                    self.embed_frames(&mut state, node_id, resolutions)
+                }
                 ChromiumSenderMessage::EnsureSharedMemory {
                     node_id,
                     resolutions,
-                } => self.ensure_shared_memory(&mut state, node_id, resolutions),
+                } => {
+                    info!("ensure_shared_memory");
+                    self.ensure_shared_memory(&mut state, node_id, resolutions)
+                },
                 ChromiumSenderMessage::UpdateSharedMemory(info) => {
+                    info!("update shared memory");
                     self.update_shared_memory(&mut state, info)
                 }
                 ChromiumSenderMessage::GetFramePositions { source_count } => {
+                    info!("get frame positions");
                     self.get_frame_positions(&state, source_count)
                 }
             };

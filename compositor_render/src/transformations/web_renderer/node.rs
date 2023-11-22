@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use compositor_common::{error::ErrorStack, renderer_spec::FallbackStrategy};
-use log::error;
+use log::{error, warn};
 
 use crate::{
     renderer::{render_graph::NodeId, RenderCtx},
@@ -35,7 +35,7 @@ impl WebRendererNode {
         target: &mut NodeTexture,
     ) {
         self.ensure_buffers(ctx.wgpu_ctx, sources);
-
+        warn!("render");
         if let Err(err) = self
             .renderer
             .render(ctx, &self.node_id, sources, &self.buffers, target)

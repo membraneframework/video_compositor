@@ -86,7 +86,7 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "type": "init",
         "framerate": FRAMERATE,
         "web_renderer": {
-            "init": false
+            "init": true
         },
     }))?;
 
@@ -131,6 +131,27 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
         "source": shader_source,
     }))?;
 
+    const HTML_FILE_PATH: &str = "examples/web_renderer.html";
+    let file_path = env::current_dir()?
+        .join(HTML_FILE_PATH)
+        .display()
+        .to_string();
+    info!("[example] Register web renderer transform");
+    common::post(&json!({
+        "type": "register",
+        "entity_type": "web_renderer",
+        "instance_id": "example_website",
+        "url": "https://github.com/",
+        "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+        "constraints": [
+            {
+                "type": "input_count",
+                "lower_bound": 1,
+                "upper_bound": 5,
+            }
+        ]
+    }))?;
+
     info!("[example] Update scene");
     common::post(&json!({
         "type": "update_scene",
@@ -138,15 +159,25 @@ fn start_example_client_code(host_ip: String) -> Result<()> {
             {
                 "output_id": "output_1",
                 "root": {
-                     "type": "shader",
-                     "shader_id": "example_shader",
-                     "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
-                     "children": [
-                         {
-                            "type": "input_stream",
-                            "input_id": "input_1",
-                         }
-                     ]
+                    "type": "view",
+                    "background_color_rgba": "#0000FFFF",
+                    "children": [
+                        {
+                            "type": "view",
+                            "width": 100,
+                            "background_color_rgba": "#00FF00FF",
+                        },
+                        {
+                            "type": "web_view",
+                            "instance_id": "example_website",
+                            "children": [
+                                {
+                                    "type": "input_stream",
+                                    "input_id": "input_1",
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         ]
