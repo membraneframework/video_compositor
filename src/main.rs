@@ -8,7 +8,6 @@ use crate::http::API_PORT_ENV;
 mod api;
 mod error;
 mod http;
-mod rtp_receiver;
 mod rtp_sender;
 mod types;
 
