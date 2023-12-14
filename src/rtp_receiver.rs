@@ -39,26 +39,27 @@ impl PipelineInput for RtpReceiver {
         // )))
         // .map_err(|e| CustomError(Box::new(e)))?;
 
-        let socket = std::net::UdpSocket::bind(std::net::SocketAddrV4::new(
-            net::Ipv4Addr::LOCALHOST,
-            opts.port,
-        )).unwrap();
+        let socket = socket2::Socket::new(
+            socket2::Domain::IPV4,
+            socket2::Type::DGRAM,
+            Some(socket2::Protocol::UDP),
+        )
+        .map_err(|e| CustomError(Box::new(e)))?;
+
+        socket
+            .set_recv_buffer_size(16 * 1024 * 1024)
+            .map_err(|e| CustomError(Box::new(e)))?;
+        
+        socket
+            .bind(&net::SocketAddr::V4(net::SocketAddrV4::new(net::Ipv4Addr::LOCALHOST, 0)).into())
+            .map_err(|e| CustomError(Box::new(e)))?;
+
+        let socket = std::net::UdpSocket::from(socket);
 
         let receiver_thread = thread::Builder::new()
             .name(format!("RTP receiver {}", opts.input_id))
             .spawn(move || {
-                // let executor = smol::LocalExecutor::new();
-
-                // future::block_on(executor.run(RtpReceiver::rtp_receiver(
-                //     socket,
-                //     packets_tx,
-                //     should_close_rx,
-                // )))
-                RtpReceiver::rtp_receiver_sync(
-                    socket,
-                    packets_tx,
-                    should_close_rx,
-                )
+                RtpReceiver::rtp_receiver_sync(socket, packets_tx, should_close_rx)
             })
             .unwrap();
 
@@ -82,42 +83,15 @@ impl PipelineInput for RtpReceiver {
 }
 
 impl RtpReceiver {
-    async fn rtp_receiver(
-        socket: net::UdpSocket,
-        packets_tx: Sender<bytes::Bytes>,
-        should_close_rx: Receiver<()>,
-    ) {
-        let mut buffer = BytesMut::zeroed(65536);
-
-        loop {
-            let received_bytes = future::or(
-                async {
-                    should_close_rx.recv().await.unwrap();
-                    None
-                },
-                async {
-                    let (len, _) = socket.recv_from(&mut buffer).await.unwrap();
-                    Some(len)
-                },
-            )
-            .await;
-
-            let Some(n) = received_bytes else {
-                return;
-            };
-
-            let packet: bytes::Bytes = buffer[..n].to_vec().into();
-            packets_tx.send(packet).await.unwrap();
-        }
-    }
-
     fn rtp_receiver_sync(
         socket: std::net::UdpSocket,
         packets_tx: Sender<bytes::Bytes>,
         should_close_rx: Receiver<()>,
     ) {
         let mut buffer = BytesMut::zeroed(65536);
-        socket.set_read_timeout(Some(std::time::Duration::from_millis(50))).unwrap();
+        socket
+            .set_read_timeout(Some(std::time::Duration::from_millis(50)))
+            .unwrap();
 
         loop {
             if should_close_rx.try_recv().is_ok() {
@@ -127,14 +101,14 @@ impl RtpReceiver {
             let received_bytes = match socket.recv(&mut buffer) {
                 Ok(n) => n,
                 Err(e) => match e.kind() {
-                    std::io::ErrorKind::TimedOut => continue,
+                    std::io::ErrorKind::WouldBlock => continue,
                     _ => {
                         error!("Error while receiving UDP packet: {}", e);
                         continue;
-                    },
-                }
+                    }
+                },
             };
-            
+
             let packet: bytes::Bytes = buffer[..received_bytes].to_vec().into();
             packets_tx.send_blocking(packet).unwrap();
         }

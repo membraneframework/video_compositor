@@ -53,8 +53,8 @@ fn start_example_client_code() -> Result<()> {
     let output_sdp = write_example_sdp_file("127.0.0.1", 8002)?;
     Command::new("ffplay")
         .args(["-protocol_whitelist", "file,rtp,udp", &output_sdp])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(std::fs::File::create("ffplay.log")?)
+        .stderr(std::fs::File::create("ffplay.err")?)
         .spawn()?;
 
     info!("[example] Download sample.");
@@ -115,6 +115,8 @@ fn start_example_client_code() -> Result<()> {
             }
         }]
     }))?;
+
+    std::thread::sleep(Duration::from_millis(500));
 
     info!("[example] Start pipeline");
     common::post(&json!({
