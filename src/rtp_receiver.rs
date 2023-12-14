@@ -31,24 +31,34 @@ impl PipelineInput for RtpReceiver {
 
     fn new(opts: Self::Opts) -> Result<(Self, Self::PacketIterator), CustomError> {
         let (should_close_tx, should_close_rx) = bounded(1);
-        let (packets_tx, packets_rx) = bounded(1);
+        let (packets_tx, packets_rx) = bounded(1024);
 
-        let socket = future::block_on(net::UdpSocket::bind(net::SocketAddrV4::new(
+        // let socket = future::block_on(net::UdpSocket::bind(net::SocketAddrV4::new(
+        //     net::Ipv4Addr::LOCALHOST,
+        //     opts.port,
+        // )))
+        // .map_err(|e| CustomError(Box::new(e)))?;
+
+        let socket = std::net::UdpSocket::bind(std::net::SocketAddrV4::new(
             net::Ipv4Addr::LOCALHOST,
             opts.port,
-        )))
-        .map_err(|e| CustomError(Box::new(e)))?;
+        )).unwrap();
 
         let receiver_thread = thread::Builder::new()
             .name(format!("RTP receiver {}", opts.input_id))
             .spawn(move || {
-                let executor = smol::LocalExecutor::new();
+                // let executor = smol::LocalExecutor::new();
 
-                future::block_on(executor.run(RtpReceiver::rtp_receiver(
+                // future::block_on(executor.run(RtpReceiver::rtp_receiver(
+                //     socket,
+                //     packets_tx,
+                //     should_close_rx,
+                // )))
+                RtpReceiver::rtp_receiver_sync(
                     socket,
                     packets_tx,
                     should_close_rx,
-                )))
+                )
             })
             .unwrap();
 
@@ -74,7 +84,7 @@ impl PipelineInput for RtpReceiver {
 impl RtpReceiver {
     async fn rtp_receiver(
         socket: net::UdpSocket,
-        packets_tx: Sender<rtp::packet::Packet>,
+        packets_tx: Sender<bytes::Bytes>,
         should_close_rx: Receiver<()>,
     ) {
         let mut buffer = BytesMut::zeroed(65536);
@@ -96,28 +106,37 @@ impl RtpReceiver {
                 return;
             };
 
-            let packet = match rtp::packet::Packet::unmarshal(&mut &buffer[..n]) {
-                // https://datatracker.ietf.org/doc/html/rfc5761#section-4
-                //
-                // Given these constraints, it is RECOMMENDED to follow the guidelines
-                // in the RTP/AVP profile [7] for the choice of RTP payload type values,
-                // with the additional restriction that payload type values in the range
-                // 64-95 MUST NOT be used.
-                Ok(packet)
-                    if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
-                {
-                    packet
-                }
-                Ok(_) | Err(_) => {
-                    if rtcp::packet::unmarshal(&mut &buffer[..n]).is_err() {
-                        warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
-                    }
+            let packet: bytes::Bytes = buffer[..n].to_vec().into();
+            packets_tx.send(packet).await.unwrap();
+        }
+    }
 
-                    continue;
+    fn rtp_receiver_sync(
+        socket: std::net::UdpSocket,
+        packets_tx: Sender<bytes::Bytes>,
+        should_close_rx: Receiver<()>,
+    ) {
+        let mut buffer = BytesMut::zeroed(65536);
+        socket.set_read_timeout(Some(std::time::Duration::from_millis(50))).unwrap();
+
+        loop {
+            if should_close_rx.try_recv().is_ok() {
+                return;
+            }
+
+            let received_bytes = match socket.recv(&mut buffer) {
+                Ok(n) => n,
+                Err(e) => match e.kind() {
+                    std::io::ErrorKind::TimedOut => continue,
+                    _ => {
+                        error!("Error while receiving UDP packet: {}", e);
+                        continue;
+                    },
                 }
             };
-
-            packets_tx.send(packet).await.unwrap();
+            
+            let packet: bytes::Bytes = buffer[..received_bytes].to_vec().into();
+            packets_tx.send_blocking(packet).unwrap();
         }
     }
 }
@@ -134,13 +153,36 @@ impl Drop for RtpReceiver {
 }
 
 pub struct PacketIter {
-    receiver: Receiver<rtp::packet::Packet>,
+    receiver: Receiver<bytes::Bytes>,
 }
 
 impl Iterator for PacketIter {
     type Item = rtp::packet::Packet;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.receiver.recv_blocking().ok()
+        loop {
+            let mut buffer = self.receiver.recv_blocking().ok()?;
+
+            match rtp::packet::Packet::unmarshal(&mut buffer.clone()) {
+                // https://datatracker.ietf.org/doc/html/rfc5761#section-4
+                //
+                // Given these constraints, it is RECOMMENDED to follow the guidelines
+                // in the RTP/AVP profile [7] for the choice of RTP payload type values,
+                // with the additional restriction that payload type values in the range
+                // 64-95 MUST NOT be used.
+                Ok(packet)
+                    if packet.header.payload_type < 64 || packet.header.payload_type > 95 =>
+                {
+                    return Some(packet);
+                }
+                Ok(_) | Err(_) => {
+                    if rtcp::packet::unmarshal(&mut buffer).is_err() {
+                        warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");
+                    }
+
+                    continue;
+                }
+            };
+        }
     }
 }

@@ -15,10 +15,10 @@ use crate::common::write_example_sdp_file;
 mod common;
 
 const SAMPLE_FILE_URL: &str = "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4";
-const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1280_720.mp4";
+const SAMPLE_FILE_PATH: &str = "examples/assets/sample_1920x1080.mp4";
 const VIDEO_RESOLUTION: Resolution = Resolution {
-    width: 1280,
-    height: 720,
+    width: 1920,
+    height: 1080,
 };
 const FRAMERATE: u32 = 30;
 
@@ -74,7 +74,7 @@ fn start_example_client_code() -> Result<()> {
             "height": VIDEO_RESOLUTION.height,
         },
         "encoder_settings": {
-            "preset": "medium"
+            "preset": "ultrafast"
         }
     }))?;
 
@@ -127,9 +127,11 @@ fn start_example_client_code() -> Result<()> {
         .args([
             "-an",
             "-c:v",
-            "libx264",
+            "copy",
             "-f",
             "rtp",
+            "-bsf:v",
+            "h264_mp4toannexb",
             "rtp://127.0.0.1:8004?rtcpport=8004",
         ])
         .spawn()?;

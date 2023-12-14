@@ -106,6 +106,9 @@ impl PipelineOutput for RtpSender {
                 }
             };
 
+
+            log::info!("packet size: {}", packet.len());
+
             context.socket.send(&packet).unwrap();
 
             context.next_sequence_number = context.next_sequence_number.wrapping_add(1);

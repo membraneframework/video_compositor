@@ -3133,6 +3133,7 @@ dependencies = [
  "shared_memory",
  "signal-hook",
  "smol",
+ "socket2 0.5.5",
  "thiserror",
  "tiny_http",
  "webrtc-util",
