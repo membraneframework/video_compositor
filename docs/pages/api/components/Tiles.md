@@ -29,4 +29,20 @@ When placing a child component inside a tile, the component might change its siz
 - Non-layout component scales proportionally to fit inside the parent. If the aspect ratios of a child and its parent do not match, then the component will be centered vertically or horizontally.
 - Layout component takes the `width` and `height` of a tile. It ignores its own `width`/`height` fields if they are defined.
 
+### Transitions
+
+The `Tiles` component currently does not support `width` / `height` changes in the same way that `View` or `Rescaler` support it. You can always wrap your `Tiles` component with a `View` component that have a transition.
+
+Currently supported transitions:
+- Adding a new child. All existing components move to their new position (with animation). At the end new component appears (without any animation).
+- Removing existing child. At the start, the tile representing that child disappears (without any animation). All remaining components move to their new position (with animation).
+- Changing order of child components.
+- \[partial\] Responsiveness to size changes:
+  - 
+
+
+Operations like adding/removing/changing order of child components rely on specific way to identify components before scene update and after. Identity is resolved in a following way:
+- If component has the `"id"` field then that its identifier.
+- If component does not have the `"id"` field defined, then its identified based on order inside the `children` list. Only child components without an `"id"` are taken into account here. For example, if a component without and `"id"` was 1st before the update and now component with an id was added before it, then that now second component its still identified.
+
 <Docs />
