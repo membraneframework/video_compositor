@@ -63,25 +63,37 @@ fn start_example_client_code() -> Result<()> {
     info!("[example] Send register output request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "output_stream",
+        "entity_type": "output",
         "output_id": "output_1",
         "port": 8002,
         "ip": "127.0.0.1",
-        "resolution": {
-            "width": VIDEO_RESOLUTION.width,
-            "height": VIDEO_RESOLUTION.height,
+        "video": {
+            "resolution": {
+                "width": VIDEO_RESOLUTION.width,
+                "height": VIDEO_RESOLUTION.height,
+            },
+            "encoder_preset": "medium",
         },
-        "encoder_settings": {
-            "preset": "medium"
+        "audio": {
+            "sample_rate": 44_100,
+            "rtp_clock_rate": 48_000,
         }
     }))?;
 
-    info!("[example] Send register input request.");
+    info!("[example] Send register input video request.");
     common::post(&json!({
         "type": "register",
-        "entity_type": "input_stream",
+        "entity_type": "input",
         "input_id": "input_1",
-        "port": 8004
+        "port": 8004,
+        "video": {
+            "codec": "h264",
+        },
+        "audio": {
+            "codec": "aac",
+            "sample_rate": 44_100,
+            "rtp_clock_rate": 48_000
+        }
     }))?;
 
     let shader_source = include_str!("./silly.wgsl");
@@ -110,6 +122,13 @@ fn start_example_client_code() -> Result<()> {
                     }
                 ],
                 "resolution": { "width": VIDEO_RESOLUTION.width, "height": VIDEO_RESOLUTION.height },
+            },
+            "audio": {
+                "inputs": [{
+                    "input_id": "input_1"
+                    // some other options per input potentially
+                }],
+                // some other options for whole output track like volume, etc.
             }
         }]
     }))?;

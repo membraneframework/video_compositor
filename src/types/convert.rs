@@ -3,7 +3,7 @@ use std::time::Duration;
 use compositor_pipeline::pipeline;
 use compositor_render::{scene, web_renderer};
 
-use crate::api::{self, UpdateScene};
+use crate::api::{self, UpdateSceneRequest};
 
 use super::util::*;
 use super::*;
@@ -56,10 +56,10 @@ impl From<compositor_render::InputId> for InputId {
     }
 }
 
-impl TryFrom<UpdateScene> for Vec<compositor_pipeline::pipeline::OutputScene> {
+impl TryFrom<UpdateSceneRequest> for Vec<compositor_pipeline::pipeline::OutputScene> {
     type Error = TypeError;
 
-    fn try_from(update_scene: UpdateScene) -> Result<Self, Self::Error> {
+    fn try_from(update_scene: UpdateSceneRequest) -> Result<Self, Self::Error> {
         update_scene
             .outputs
             .into_iter()

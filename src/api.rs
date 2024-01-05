@@ -25,21 +25,21 @@ pub enum Request {
     Init(InitOptions),
     Register(RegisterRequest),
     Unregister(UnregisterRequest),
-    UpdateScene(UpdateScene),
+    UpdateScene(UpdateSceneRequest),
     Query(QueryRequest),
     Start,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
-pub struct UpdateScene {
+pub struct UpdateSceneRequest {
     pub outputs: Vec<types::OutputScene>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "entity_type", rename_all = "snake_case")]
 pub enum UnregisterRequest {
-    InputStream { input_id: InputId },
-    OutputStream { output_id: OutputId },
+    Input { input_id: InputId },
+    Output { output_id: OutputId },
     Shader { shader_id: RendererId },
     WebRenderer { instance_id: RendererId },
     Image { image_id: RendererId },
@@ -165,10 +165,10 @@ impl Api {
 
     fn handle_unregister_request(&mut self, request: UnregisterRequest) -> Result<(), ApiError> {
         match request {
-            UnregisterRequest::InputStream { input_id } => {
+            UnregisterRequest::Input { input_id } => {
                 Ok(self.pipeline.unregister_input(&input_id.into())?)
             }
-            UnregisterRequest::OutputStream { output_id } => {
+            UnregisterRequest::Output { output_id } => {
                 Ok(self.pipeline.unregister_output(&output_id.into())?)
             }
             UnregisterRequest::Shader { shader_id } => Ok(self

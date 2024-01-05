@@ -1,6 +1,6 @@
 use compositor_pipeline::{
     error::{InputInitError, RegisterInputError},
-    pipeline,
+    pipeline::{self},
 };
 use log::trace;
 
@@ -18,10 +18,8 @@ pub fn handle_register_request(
     request: RegisterRequest,
 ) -> Result<Option<ResponseHandler>, ApiError> {
     match request {
-        RegisterRequest::InputStream(input_stream) => register_input(api, input_stream).map(Some),
-        RegisterRequest::OutputStream(output_stream) => {
-            register_output(api, output_stream).map(|_| None)
-        }
+        RegisterRequest::Input(input_stream) => register_input(api, input_stream).map(Some),
+        RegisterRequest::Output(output_stream) => register_output(api, output_stream).map(|_| None),
         RegisterRequest::Shader(spec) => {
             let spec = spec.try_into()?;
             api.pipeline.register_renderer(spec)?;
@@ -44,10 +42,15 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
     let RegisterOutputRequest {
         output_id,
         port,
-        resolution,
-        encoder_settings,
+        video,
         ip,
+        ..
     } = request;
+
+    let Some(video) = video else {
+        // TODO error
+        return Ok(());
+    };
 
     api.pipeline.with_outputs(|mut iter| {
         if let Some((node_id, _)) = iter.find(|(_, output)| output.port == port && output.ip == ip) {
@@ -63,8 +66,8 @@ fn register_output(api: &mut Api, request: RegisterOutputRequest) -> Result<(), 
     api.pipeline.register_output(
         output_id.into(),
         pipeline::OutputOptions {
-            resolution: resolution.into(),
-            encoder_settings: encoder_settings.into(),
+            resolution: video.resolution.into(),
+            encoder_settings: video.encoder_preset.into(),
             receiver_options: rtp_sender::Options { port, ip },
         },
     )?;
@@ -76,7 +79,9 @@ fn register_input(
     api: &mut Api,
     request: RegisterInputRequest,
 ) -> Result<ResponseHandler, ApiError> {
-    let RegisterInputRequest { input_id: id, port } = request;
+    let RegisterInputRequest {
+        input_id: id, port, ..
+    } = request;
     let port: Port = port.try_into()?;
 
     match port {

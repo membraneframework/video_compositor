@@ -1,8 +1,7 @@
-use std::fmt::Display;
-use std::sync::Arc;
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::sync::Arc;
 
 mod component;
 mod convert;
@@ -11,6 +10,7 @@ mod from_component;
 mod from_renderer;
 mod register_request;
 mod renderer;
+mod track_properties;
 mod util;
 
 #[cfg(test)]
@@ -50,6 +50,7 @@ pub use renderer::WebRendererSpec;
 pub use util::Resolution;
 pub use util::TypeError;
 
+use self::track_properties::MixingProperties;
 use self::util::Framerate;
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -68,6 +69,12 @@ pub struct InputId(Arc<str>);
 pub struct OutputScene {
     pub output_id: OutputId,
     pub root: Component,
+    audio: AudioMixParams,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub struct AudioMixParams {
+    inputs: Vec<MixingProperties>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

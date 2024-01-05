@@ -50,7 +50,7 @@ impl TestCaseInstance {
     pub fn new(test_case: TestCase) -> TestCaseInstance {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
-                RegisterRequest::InputStream(_) | RegisterRequest::OutputStream(_) => {
+                RegisterRequest::Input(_) | RegisterRequest::Output(_) => {
                     panic!("Input and output streams are not supported in snapshot tests")
                 }
                 RegisterRequest::Shader(shader) => shader.try_into().unwrap(),
