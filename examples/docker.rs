@@ -8,7 +8,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{logger, types::Resolution};
+use video_compositor::{config::config, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -71,7 +71,7 @@ fn build_and_start_docker(skip_build: bool) -> Result<()> {
         "-p",
         "8004:8004/udp",
         "-p",
-        "8001:8001",
+        format!("{}:{}", config().api_port, config().api_port).leak(),
         "--rm",
     ];
 

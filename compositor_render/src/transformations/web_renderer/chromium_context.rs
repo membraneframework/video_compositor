@@ -51,7 +51,7 @@ impl ChromiumContext {
 
             let app = ChromiumApp {
                 show_fps: false,
-                disable_gpu: opts.disable_gpu,
+                enable_gpu: opts.enable_gpu,
             };
             let settings = cef::Settings {
                 windowless_rendering_enabled: true,
@@ -118,7 +118,7 @@ impl ChromiumContext {
 
 struct ChromiumApp {
     show_fps: bool,
-    disable_gpu: bool,
+    enable_gpu: bool,
 }
 
 #[cfg(feature = "web_renderer")]
@@ -142,7 +142,7 @@ impl cef::App for ChromiumApp {
         if self.show_fps {
             command_line.append_switch("show-fps-counter")
         }
-        if self.disable_gpu {
+        if !self.enable_gpu {
             command_line.append_switch("disable-gpu");
         }
 
