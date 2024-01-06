@@ -6,7 +6,7 @@ use std::{
     thread,
     time::Duration,
 };
-use video_compositor::{api::Response, http, logger, types::Resolution};
+use video_compositor::{api::Response, config::config, http, logger, types::Resolution};
 
 use crate::common::write_example_sdp_file;
 
@@ -29,7 +29,7 @@ fn main() {
         }
     });
 
-    http::Server::new(8001).run();
+    http::Server::new(config().api_port).run();
 }
 
 fn start_example_client_code() -> Result<()> {
