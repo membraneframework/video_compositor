@@ -3,57 +3,57 @@ on:
     workflow_dispatch: {}
 
 jobs:
-    linux:
-        runs-on: ubuntu-latest
-        steps:
-            - name: 🛠 Install system dependencies
-              run: |
-                  sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
-                  sudo apt-get update -y -qq
-                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
-            - name: 🔧 Install the rust toolchain
-              uses: dtolnay/rust-toolchain@stable
+    # linux:
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - name: 🛠 Install system dependencies
+    #           run: |
+    #               sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
+    #               sudo apt-get update -y -qq
+    #               sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev
+    #         - name: 🔧 Install the rust toolchain
+    #           uses: dtolnay/rust-toolchain@stable
 
-            - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+    #         - name: 📥 Checkout repo
+    #           uses: actions/checkout@v3
 
-            - name: 📦 Package
-              run: cargo run --bin package_for_release
+    #         - name: 📦 Package
+    #           run: cargo run --bin package_for_release
 
-            - uses: actions/upload-artifact@v3
-              with:
-                name: video_compositor_linux_x86_64.tar.gz
-                path: video_compositor_linux_x86_64.tar.gz
+    #         - uses: actions/upload-artifact@v3
+    #           with:
+    #             name: video_compositor_linux_x86_64.tar.gz
+    #             path: video_compositor_linux_x86_64.tar.gz
 
-            - uses: actions/upload-artifact@v3
-              with:
-                name: video_compositor_with_web_renderer_linux_x86_64.tar.gz
-                path: video_compositor_with_web_renderer_linux_x86_64.tar.gz
+    #         - uses: actions/upload-artifact@v3
+    #           with:
+    #             name: video_compositor_with_web_renderer_linux_x86_64.tar.gz
+    #             path: video_compositor_with_web_renderer_linux_x86_64.tar.gz
 
-    macos_x86_64:
-        runs-on: macos-latest
-        steps:
-            - name: 🛠 Install system dependencies
-              run: brew install ffmpeg
+    # macos_x86_64:
+    #     runs-on: macos-latest
+    #     steps:
+    #         - name: 🛠 Install system dependencies
+    #           run: brew install ffmpeg
 
-            - name: 🔧 Install the rust toolchain
-              uses: dtolnay/rust-toolchain@stable
+    #         - name: 🔧 Install the rust toolchain
+    #           uses: dtolnay/rust-toolchain@stable
 
-            - name: 📥 Checkout repo
-              uses: actions/checkout@v3
+    #         - name: 📥 Checkout repo
+    #           uses: actions/checkout@v3
 
-            - name: 📦 Package
-              run: cargo run --bin package_for_release
+    #         - name: 📦 Package
+    #           run: cargo run --bin package_for_release
 
-            - uses: actions/upload-artifact@v3
-              with:
-                name: video_compositor_darwin_x86_64.tar.gz
-                path: video_compositor_darwin_x86_64.tar.gz
+    #         - uses: actions/upload-artifact@v3
+    #           with:
+    #             name: video_compositor_darwin_x86_64.tar.gz
+    #             path: video_compositor_darwin_x86_64.tar.gz
             
-            - uses: actions/upload-artifact@v3
-              with:
-                name: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
-                path: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
+    #         - uses: actions/upload-artifact@v3
+    #           with:
+    #             name: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
+    #             path: video_compositor_with_web_renderer_darwin_x86_64.tar.gz
 
     macos-aarch64:
         runs-on: macos-latest-xlarge

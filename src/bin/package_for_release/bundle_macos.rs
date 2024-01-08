@@ -63,6 +63,22 @@ fn bundle_app(target: &'static str, output_name: &str, enable_web_rendering: boo
         tmp_dir.join("video_compositor"),
     )?;
 
+    if enable_web_rendering {
+        info!("Removing extended attributes");
+        let exit_code = Command::new("sudo")
+            .args(["xattr", "-cr", "video_compositor"])
+            .spawn()?
+            .wait()?
+            .code();
+
+        if exit_code != Some(0) {
+            return Err(anyhow!(
+                "Command xattr failed with exit code {:?}",
+                exit_code
+            ));
+        }
+    }
+
     info!("Create tar.gz archive.");
     let exit_code = Command::new("tar")
         .args(["-C", root_dir_str, "-czvf", output_name, "video_compositor"])
