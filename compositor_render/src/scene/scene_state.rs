@@ -55,6 +55,8 @@ impl SceneState {
         }
     }
 
+    /// Function that should be called for each render. It's intended to keep state of
+    /// SceneState in sync with layout code that is executed inside nodes.
     pub(crate) fn register_render_event(
         &mut self,
         pts: Duration,
@@ -73,6 +75,12 @@ impl SceneState {
     ) -> Result<Vec<OutputNode>, SceneError> {
         validate_scene_update(&outputs)?;
 
+        // Recalculate last known states from previous scene.
+        //
+        // This works because only scene update can modify a state,
+        // but if we implement e.g. animations that trigger on size 
+        // change or if input stream are missing then this code will
+        // need to be executed per render.
         for output in self.outputs.iter_mut() {
             recalculate_layout(
                 &mut output.root,
@@ -145,44 +153,45 @@ pub(super) enum IntermediateNode {
 }
 
 impl IntermediateNode {
-    /// * `resolution` - Forces resolution of a node, primary use case for this
-    ///   param is to force resolution on a top level component to match resolution
-    ///   of an output stream. TODO: Currently only layouts respect that value
+    /// * `resolution` - Defines desired resolution of the node. Each recursive call to build_tree
+    ///   except the first one should call it with None.
     /// * `pts` - PTS from the last render (this function is not called on render
     ///   so we can't have exact PTS here)
     fn build_tree(self, resolution: Option<Resolution>, pts: Duration) -> Result<Node, SceneError> {
-        let size = match resolution {
-            Some(resolution) => resolution.into(),
-            None => self.node_size(pts)?,
-        };
         match self {
             IntermediateNode::InputStream(input) => Ok(Node {
-                params: NodeParams::InputStream(input.component.input_id), // TODO: enforce resolution
+                params: NodeParams::InputStream(input.component.input_id),
                 children: vec![],
             }),
             IntermediateNode::Shader { shader, children } => Ok(Node {
-                params: NodeParams::Shader(shader.component, shader.shader), // TODO: enforce resolution
+                params: NodeParams::Shader(shader.component, shader.shader),
                 children: children
                     .into_iter()
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
             IntermediateNode::WebView { web, children } => Ok(Node {
-                params: NodeParams::Web(web.instance), // TODO: enforce resolution
+                params: NodeParams::Web(web.instance),
                 children: children
                     .into_iter()
                     .map(|node| node.build_tree(None, pts))
                     .collect::<Result<_, _>>()?,
             }),
-            IntermediateNode::Layout { root, children } => Ok(Node {
-                params: NodeParams::Layout(LayoutNode {
-                    root: SizedLayoutComponent::new(root, size),
-                }),
-                children: children
-                    .into_iter()
-                    .map(|node| node.build_tree(None, pts))
-                    .collect::<Result<_, _>>()?,
-            }),
+            IntermediateNode::Layout { root, children } => {
+                let size = match resolution {
+                    Some(resolution) => resolution.into(),
+                    None => Self::layout_node_size(pts, &root)?,
+                };
+                Ok(Node {
+                    params: NodeParams::Layout(LayoutNode {
+                        root: SizedLayoutComponent::new(root, size),
+                    }),
+                    children: children
+                        .into_iter()
+                        .map(|node| node.build_tree(None, pts))
+                        .collect::<Result<_, _>>()?,
+                })
+            }
             IntermediateNode::Image(image) => Ok(Node {
                 params: NodeParams::Image(image.image),
                 children: vec![],
@@ -194,35 +203,28 @@ impl IntermediateNode {
         }
     }
 
-    fn node_size(&self, pts: Duration) -> Result<Size, SceneError> {
-        match self {
-            IntermediateNode::InputStream(input) => Ok(input.size),
-            IntermediateNode::Shader {
-                shader,
-                children: _,
-            } => Ok(shader.component.size),
-            IntermediateNode::WebView { web, children: _ } => Ok(web.size()),
-            IntermediateNode::Image(image) => Ok(image.size()),
-            IntermediateNode::Text(text) => Ok(text.size()),
-            IntermediateNode::Layout { root, children: _ } => {
-                let (width, height) = match root.position(pts) {
-                    Position::Static { width, height } => (width, height),
-                    // Technically absolute positioning is a bug here, but I think throwing error
-                    // in this case would be to invasive. It's better to just ignore those values.
-                    Position::Absolute(position) => (Some(position.width), Some(position.height)),
-                };
-                if let (Some(width), Some(height)) = (width, height) {
-                    Ok(Size { width, height })
-                } else {
-                    Err(SceneError::UnknownDimensionsForLayoutNodeRoot {
-                        component: root.component_type(),
-                        msg: match root.component_id() {
-                            Some(id) => format!("Please provide width and height values for component with id \"{id}\""),
-                            None => "Please provide width and height values.".to_string(),
-                        },
-                    })
-                }
-            }
+    fn layout_node_size(
+        pts: Duration,
+        layout: &StatefulLayoutComponent,
+    ) -> Result<Size, SceneError> {
+        let (width, height) = match layout.position(pts) {
+            Position::Static { width, height } => (width, height),
+            // Technically absolute positioning is a bug here, but I think throwing error
+            // in this case would be to invasive. It's better to just ignore those values.
+            Position::Absolute(position) => (Some(position.width), Some(position.height)),
+        };
+        if let (Some(width), Some(height)) = (width, height) {
+            Ok(Size { width, height })
+        } else {
+            Err(SceneError::UnknownDimensionsForLayoutNodeRoot {
+                component: layout.component_type(),
+                msg: match layout.component_id() {
+                    Some(id) => format!(
+                        "Please provide width and height values for component with id \"{id}\""
+                    ),
+                    None => "Please provide width and height values.".to_string(),
+                },
+            })
         }
     }
 }

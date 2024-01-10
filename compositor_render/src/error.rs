@@ -50,6 +50,9 @@ pub enum UnregisterRendererError {
 pub enum RenderSceneError {
     #[error(transparent)]
     WgpuError(#[from] WgpuError),
+
+    #[error("Unknown internal renderer error.")]
+    InternalRendererError(#[source] Box<dyn std::error::Error>)
 }
 
 #[derive(Debug, thiserror::Error)]

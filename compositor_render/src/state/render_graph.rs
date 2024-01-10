@@ -225,7 +225,7 @@ impl RenderNodesSet {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
-pub enum InternalSceneError {
+pub(crate) enum InternalSceneError {
     #[error("Missing node \"{0}\"")]
     MissingNode(usize),
 }

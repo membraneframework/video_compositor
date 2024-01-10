@@ -125,6 +125,10 @@ impl StatefulComponent {
         }
     }
 
+    /// Group components into nodes:
+    /// - For non-layout components: each component is a separate node.
+    /// - For layout components: If child and parent are both layout components the are part of the
+    /// same node.
     fn intermediate_node(&self) -> IntermediateNode {
         match self {
             StatefulComponent::InputStream(input) => input.intermediate_node(),

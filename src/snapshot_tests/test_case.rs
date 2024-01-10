@@ -6,7 +6,7 @@ use anyhow::Result;
 use compositor_pipeline::pipeline;
 use compositor_render::{
     scene::{OutputScene, RGBColor},
-    Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution, YuvData,
+    Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution, YuvData, error::RenderSceneError,
 };
 use image::ImageBuffer;
 use video_compositor::types::{self, RegisterRequest};
@@ -182,7 +182,7 @@ impl TestCaseInstance {
         paths
     }
 
-    pub fn snapshots_for_pts(&self, pts: Duration) -> Result<Vec<Snapshot>> {
+    pub fn snapshots_for_pts(&self, pts: Duration) -> Result<Vec<Snapshot>, RenderSceneError> {
         let mut frame_set = FrameSet::new(pts);
         for input in self.case.inputs.iter() {
             let input_id = InputId::from(Arc::from(input.name.clone()));

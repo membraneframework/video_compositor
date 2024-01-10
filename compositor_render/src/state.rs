@@ -191,9 +191,10 @@ impl InnerRenderer {
         self.scene
             .register_render_event(inputs.pts, input_resolutions);
 
-        populate_inputs(ctx, &mut self.render_graph, &mut inputs).unwrap();
-        run_transforms(ctx, &mut self.render_graph, inputs.pts).unwrap();
-        let frames = read_outputs(ctx, &mut self.render_graph, inputs.pts).unwrap();
+        let frames = populate_inputs(ctx, &mut self.render_graph, &mut inputs)
+            .and_then(|_| run_transforms(ctx, &mut self.render_graph, inputs.pts))
+            .and_then(|_| read_outputs(ctx, &mut self.render_graph, inputs.pts))
+            .map_err(|err| RenderSceneError::InternalRendererError(err.into()))?;
 
         scope.pop(&ctx.wgpu_ctx.device)?;
 
