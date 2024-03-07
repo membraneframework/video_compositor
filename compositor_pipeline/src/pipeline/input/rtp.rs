@@ -188,7 +188,11 @@ fn run_depayloader_thread(
                     }
                 }
             }
-            Ok(_) | Err(_) => {
+            Ok(packet) => {
+                warn!("UNKNOWN RTP HEADER {:#?}", packet.header);
+                continue;
+            }
+            Err(_) => {
                 // TODO: Handle RTCP Goodbye packet
                 if rtcp::packet::unmarshal(&mut buffer).is_err() {
                     warn!("Received an unexpected packet, which is not recognized either as RTP or RTCP. Dropping.");

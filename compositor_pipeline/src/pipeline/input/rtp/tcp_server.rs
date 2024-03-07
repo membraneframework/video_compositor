@@ -11,7 +11,7 @@ use bytes::BytesMut;
 use compositor_render::error::ErrorStack;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use log::error;
-use tracing::{debug, info, span, trace, Level};
+use tracing::{debug, info, span, trace, warn, Level};
 
 use crate::pipeline::{rtp::bind_to_requested_port, Port};
 
@@ -135,6 +135,7 @@ impl TcpReadPacketStream {
         self.read_until_buffer_size(len)?;
         let mut packet = BytesMut::zeroed(len);
         self.buf.read_exact(&mut packet[..])?;
+        warn!("sequence number {}", u16::from_be_bytes([packet[2], packet[3]]));
         Ok(packet.freeze())
     }
 
