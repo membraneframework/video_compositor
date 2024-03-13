@@ -13,6 +13,7 @@ use super::*;
 pub enum RegisterRequest {
     RtpInputStream(RtpInputStream),
     Mp4(Mp4),
+    Hls(Hls),
     OutputStream(RegisterOutputRequest),
     Shader(ShaderSpec),
     WebRenderer(WebRendererSpec),
@@ -40,6 +41,24 @@ pub struct RtpInputStream {
     /// Offset in milliseconds relative to the pipeline start (start request). If the offset is
     /// not defined then the stream will be synchronized based on the delivery time of the initial
     /// frames.
+    pub offset_ms: Option<f64>,
+}
+
+/// Input stream from HLS stream
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Hls {
+    /// An identifier for the input stream.
+    pub input_id: InputId,
+    /// URL of the HLS playlist
+    pub url: String,
+    /// length of the forward buffer (in seconds)
+    pub buffer_length: f64,
+    /// (**default=`false`**) If input is required and frames are not processed
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If offset is
+    /// not defined then stream is synchronized based on the first frames delivery time.
     pub offset_ms: Option<f64>,
 }
 

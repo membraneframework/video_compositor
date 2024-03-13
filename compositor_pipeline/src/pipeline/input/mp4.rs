@@ -25,7 +25,7 @@ pub(crate) enum Mp4ReaderOptions {
     NonFragmented {
         file: PathBuf,
     },
-    #[allow(dead_code)]
+
     Fragmented {
         header: Bytes,
         fragment_receiver: Receiver<PipelineEvent<Bytes>>,

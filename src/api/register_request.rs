@@ -29,6 +29,10 @@ pub fn handle_register_request(
             let (input_id, register_options) = mp4.try_into()?;
             handle_register_input(api, input_id, register_options)
         }
+        RegisterRequest::Hls(hls) => {
+            let (input_id, register_options) = hls.try_into()?;
+            handle_register_input(api, input_id, register_options)
+        }
         RegisterRequest::OutputStream(output_stream) => {
             match api.pipeline().register_output(output_stream.try_into()?)? {
                 Some(Port(port)) => {

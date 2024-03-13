@@ -307,6 +307,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chrono"
+version = "0.4.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "chunked_transfer"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -402,6 +411,7 @@ dependencies = [
  "fdk-aac-sys",
  "ffmpeg-next",
  "log",
+ "m3u8-rs",
  "mp4",
  "opus",
  "rand",
@@ -411,6 +421,7 @@ dependencies = [
  "socket2",
  "thiserror",
  "tracing",
+ "url",
  "webrtc-util",
 ]
 
@@ -1323,6 +1334,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db2c024b41519440580066ba82aab04092b333e09066a5eb86c7c4890df31f22"
 dependencies = [
  "hashbrown 0.14.3",
+]
+
+[[package]]
+name = "m3u8-rs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f03cd3335fb5f2447755d45cda9c70f76013626a9db44374973791b0926a86c3"
+dependencies = [
+ "chrono",
+ "nom",
 ]
 
 [[package]]
@@ -3000,6 +3021,7 @@ dependencies = [
  "tiny_http",
  "tracing",
  "tracing-subscriber",
+ "url",
  "webrtc-util",
 ]
 

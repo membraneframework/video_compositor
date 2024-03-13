@@ -29,6 +29,7 @@ image = { version = "0.24.7", features = ["jpeg", "png"] }
 rtp = "0.9.0"
 rand = "0.8.5"
 tracing = "0.1.40"
+url = "2.5.0"
 
 [dependencies]
 compositor_render = { path = "compositor_render" }
@@ -54,6 +55,7 @@ tracing = { workspace = true }
 tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
 libc = "0.2.151"
 rand = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }

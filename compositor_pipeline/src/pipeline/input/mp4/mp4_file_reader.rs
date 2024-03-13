@@ -9,7 +9,7 @@ use bytes::{Buf, Bytes, BytesMut};
 use compositor_render::InputId;
 use crossbeam_channel::{Receiver, Sender};
 use mp4::Mp4Reader;
-use tracing::{debug, span, warn, Level};
+use tracing::{debug, error, span, warn, Level};
 
 use crate::{
     pipeline::{
@@ -26,7 +26,6 @@ type ChunkReceiver = Receiver<PipelineEvent<EncodedChunk>>;
 
 pub(crate) struct Mp4FileReader<DecoderOptions> {
     stop_thread: Arc<AtomicBool>,
-    fragment_sender: Option<Sender<PipelineEvent<Bytes>>>,
     decoder_options: DecoderOptions,
 }
 
@@ -243,11 +242,6 @@ impl Mp4FileReader<VideoDecoderOptions> {
             chunk_kind: EncodedChunkKind::Video(VideoCodec::H264),
         })
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn fragment_sender(&self) -> Option<Sender<PipelineEvent<Bytes>>> {
-        self.fragment_sender.clone()
-    }
 }
 
 impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
@@ -293,7 +287,6 @@ impl<DecoderOptions: Clone + Send + 'static> Mp4FileReader<DecoderOptions> {
         Ok(Some((
             Mp4FileReader {
                 stop_thread,
-                fragment_sender: None,
                 decoder_options,
             },
             receiver,
@@ -316,30 +309,95 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
     mut reader: Mp4Reader<Reader>,
     sender: Sender<PipelineEvent<EncodedChunk>>,
     stop_thread: Arc<AtomicBool>,
-    _fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
+    fragment_receiver: Option<Receiver<PipelineEvent<Bytes>>>,
     track_info: TrackInfo<DecoderOptions, impl FnMut(mp4::Mp4Sample) -> Bytes>,
 ) {
     let mut sample_unpacker = track_info.sample_unpacker;
 
-    for i in 1..track_info.sample_count {
+    read_samples(
+        &mut reader,
+        track_info.track_id,
+        track_info.sample_count,
+        track_info.timescale,
+        track_info.chunk_kind,
+        &mut sample_unpacker,
+        &stop_thread,
+        &sender,
+    );
+
+    if let Some(fragment_receiver) = fragment_receiver {
+        for fragment in fragment_receiver.into_iter() {
+            let fragment = match fragment {
+                PipelineEvent::Data(fragment) => fragment,
+                PipelineEvent::EOS => break,
+            };
+
+            let size = fragment.len() as u64;
+            let fragment_reader =
+                reader.read_fragment_header(std::io::Cursor::new(&fragment), size);
+
+            let mut fragment_reader = match fragment_reader {
+                Ok(fragment_reader) => fragment_reader,
+                Err(e) => {
+                    error!("Error while reading an mp4 fragment: {e}");
+                    continue;
+                }
+            };
+
+            let sample_count = fragment_reader
+                .tracks()
+                .get(&track_info.track_id)
+                .unwrap()
+                .sample_count();
+
+            read_samples(
+                &mut fragment_reader,
+                track_info.track_id,
+                sample_count,
+                track_info.timescale,
+                track_info.chunk_kind,
+                &mut sample_unpacker,
+                &stop_thread,
+                &sender,
+            );
+        }
+    }
+
+    if let Err(_err) = sender.send(PipelineEvent::EOS) {
+        debug!("Failed to send EOS from MP4 video reader. Channel closed.");
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn read_samples<R: Read + Seek, F: FnMut(mp4::Mp4Sample) -> Bytes>(
+    reader: &mut mp4::Mp4Reader<R>,
+    track_id: u32,
+    sample_count: u32,
+    timescale: u32,
+    chunk_kind: EncodedChunkKind,
+    sample_unpacker: &mut F,
+    stop_thread: &AtomicBool,
+    sender: &Sender<PipelineEvent<EncodedChunk>>,
+) {
+    for i in 1..sample_count {
         if stop_thread.load(std::sync::atomic::Ordering::Relaxed) {
             return;
         }
 
-        match reader.read_sample(track_info.track_id, i) {
+        match reader.read_sample(track_id, i) {
             Ok(Some(sample)) => {
                 let rendering_offset = sample.rendering_offset;
                 let start_time = sample.start_time;
                 let data = sample_unpacker(sample);
 
-                let dts = Duration::from_secs_f64(start_time as f64 / track_info.timescale as f64);
+                let dts = Duration::from_secs_f64(start_time as f64 / timescale as f64);
                 let chunk = EncodedChunk {
                     data,
                     pts: Duration::from_secs_f64(
-                        (start_time as f64 + rendering_offset as f64) / track_info.timescale as f64,
+                        (start_time as f64 + rendering_offset as f64) / timescale as f64,
                     ),
                     dts: Some(dts),
-                    kind: track_info.chunk_kind,
+                    kind: chunk_kind,
                 };
 
                 match sender.send(PipelineEvent::Data(chunk)) {
@@ -355,8 +413,5 @@ fn run_reader_thread<Reader: Read + Seek, DecoderOptions>(
             }
             _ => {}
         }
-    }
-    if let Err(_err) = sender.send(PipelineEvent::EOS) {
-        debug!("Failed to send EOS from MP4 video reader. Channel closed.");
     }
 }

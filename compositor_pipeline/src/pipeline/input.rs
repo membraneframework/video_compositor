@@ -5,16 +5,21 @@ use crate::{error::InputInitError, queue::PipelineEvent};
 use crossbeam_channel::Receiver;
 use rtp::{RtpReceiver, RtpReceiverOptions};
 
-use self::mp4::{Mp4, Mp4Options};
+use self::{
+    hls::{Hls, HlsOptions},
+    mp4::{Mp4, Mp4Options},
+};
 
 use super::{decoder::DecoderOptions, structs::EncodedChunk, Port};
 
+pub mod hls;
 pub mod mp4;
 pub mod rtp;
 
 pub enum Input {
     Rtp(RtpReceiver),
     Mp4(Mp4),
+    Hls(Hls),
 }
 
 impl Input {
@@ -39,6 +44,12 @@ impl Input {
                     (Self::Mp4(mp4), chunks_receiver, decoder_options, None)
                 },
             )?),
+
+            InputOptions::Hls(opts) => Ok(Hls::new(opts).map(
+                |(hls, chunks_receiver, decoder_options)| {
+                    (Self::Hls(hls), chunks_receiver, decoder_options, None)
+                },
+            )?),
         }
     }
 }
@@ -46,6 +57,7 @@ impl Input {
 pub enum InputOptions {
     Rtp(RtpReceiverOptions),
     Mp4(Mp4Options),
+    Hls(HlsOptions),
 }
 
 #[derive(Debug)]

@@ -107,6 +107,9 @@ pub enum InputInitError {
 
     #[error(transparent)]
     Mp4(#[from] crate::pipeline::input::mp4::Mp4Error),
+
+    #[error(transparent)]
+    Hls(#[from] crate::pipeline::input::hls::HlsError),
 }
 
 pub enum ErrorType {

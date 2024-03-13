@@ -83,6 +83,34 @@ impl TryFrom<RtpInputStream> for (compositor_render::InputId, pipeline::Register
     }
 }
 
+impl TryFrom<Hls> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
+    type Error = TypeError;
+
+    fn try_from(value: Hls) -> Result<Self, TypeError> {
+        let url = url::Url::try_from(value.url.as_str())?;
+        let input_options = input::InputOptions::Hls(input::hls::HlsOptions {
+            url,
+            buffer_length: std::time::Duration::from_secs_f64(value.buffer_length),
+            input_id: value.input_id.clone().into(),
+        });
+
+        let queue_options = queue::InputOptions {
+            required: value.required.unwrap_or(false),
+            offset: value
+                .offset_ms
+                .map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+        };
+
+        Ok((
+            value.input_id.into(),
+            pipeline::RegisterInputOptions {
+                input_options,
+                queue_options,
+            },
+        ))
+    }
+}
+
 impl TryFrom<Mp4> for (compositor_render::InputId, pipeline::RegisterInputOptions) {
     type Error = TypeError;
 

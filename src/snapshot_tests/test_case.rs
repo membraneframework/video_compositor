@@ -50,6 +50,7 @@ impl TestCaseInstance {
         fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
             match register_request {
                 RegisterRequest::Mp4(_)
+                | RegisterRequest::Hls(_)
                 | RegisterRequest::RtpInputStream(_)
                 | RegisterRequest::OutputStream(_) => {
                     panic!("Input and output streams are not supported in snapshot tests")
