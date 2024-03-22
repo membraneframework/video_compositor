@@ -69,7 +69,7 @@ jobs:
                   apt install software-properties-common -y
                   add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
                   apt-get update -y -qq
-                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev
+                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev libnss3 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0
                   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
                   rm -rf /var/lib/apt/lists/*
 
