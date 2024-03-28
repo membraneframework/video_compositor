@@ -183,6 +183,48 @@ pub fn stream_ffmpeg_testsrc(ip: &str, port: u16, resolution: Resolution) -> Res
     Ok(())
 }
 
+#[allow(dead_code)]
+pub fn stream_webcam_gstreamer(ip: &str, port: u16) -> io::Result<()> {
+    let (gst_webcam_source, gst_encoder, gst_encoder_options) = if cfg!(target_os = "macos") {
+        ("avfvideosrc", "vtenc_h264", "bitrate=2000")
+    } else {
+        (
+            "v4l2src",
+            "x264enc",
+            "tune=zerolatency bitrate=2000 speed-preset=superfast",
+        )
+    };
+
+    let plugins = vec![
+        gst_webcam_source,
+        "videoconvert",
+        gst_encoder,
+        "rtph264pay",
+        "udpsink",
+    ];
+
+    for plugin in plugins {
+        if !gstreamer_plugin_available(plugin)? {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!(
+                    "Missing plugin: {}. Make sure to install all required gstreamer plugins.",
+                    plugin
+                ),
+            ));
+        }
+    }
+
+    let gst_command = format!(
+        "gst-launch-1.0 {} ! videoconvert ! {} {} ! rtph264pay config-interval=1 pt=96 ! rtpstreampay ! tcpclientsink host={} port={}",
+        gst_webcam_source, gst_encoder, gst_encoder_options, ip, port
+    );
+
+    Command::new("bash").arg("-c").arg(gst_command).spawn()?;
+
+    Ok(())
+}
+
 /// The SDP file will describe an RTP session on localhost with H264 encoding.
 fn write_video_example_sdp_file(ip: &str, port: u16) -> Result<String> {
     let sdp_filepath = PathBuf::from(format!("/tmp/example_sdp_video_input_{}.sdp", port));
@@ -281,4 +323,12 @@ fn get_formated_body(body_str: &str) -> String {
         serde_json::to_string_pretty(&body_map).unwrap(),
         msg_string,
     )
+}
+
+fn gstreamer_plugin_available(plugin_name: &str) -> Result<bool, io::Error> {
+    Ok(Command::new("gst-inspect-1.0")
+        .arg(plugin_name)
+        .output()?
+        .status
+        .success())
 }
