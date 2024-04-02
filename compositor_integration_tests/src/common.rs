@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
     time::Duration,
 };
+use video_compositor::config::Config;
 use webrtc_util::Unmarshal;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,4 +69,20 @@ pub fn split_rtp_packet_dump(dump: Bytes, split_at_pts: Duration) -> Result<(Byt
     }
 
     Ok((dump, Bytes::new()))
+}
+
+pub trait PacketExt {
+    fn pts(&self, config: &Config) -> Duration;
+}
+
+impl PacketExt for rtp::packet::Packet {
+    fn pts(&self, config: &Config) -> Duration {
+        match self.header.payload_type {
+            96 => Duration::from_secs_f64(self.header.timestamp as f64 / 90000.0),
+            97 => Duration::from_secs_f64(
+                self.header.timestamp as f64 / config.output_sample_rate as f64,
+            ),
+            payload_type => panic!("Unsupported payload type: {payload_type}"),
+        }
+    }
 }

@@ -24,8 +24,10 @@ pub fn compare_video_dumps(
     let expected_video_packets = find_packets_for_payload_type(&expected_packets, 96);
     let actual_video_packets = find_packets_for_payload_type(&actual_packets, 96);
 
-    let mut expected_video_decoder = VideoDecoder::new()?;
-    let mut actual_video_decoder = VideoDecoder::new()?;
+    let config = read_config();
+
+    let mut expected_video_decoder = VideoDecoder::new(config.clone())?;
+    let mut actual_video_decoder = VideoDecoder::new(config)?;
 
     for packet in expected_video_packets {
         expected_video_decoder.decode(packet)?;
@@ -70,10 +72,11 @@ pub fn compare_audio_dumps(
     let expected_audio_packets = find_packets_for_payload_type(&expected_packets, 97);
     let actual_audio_packets = find_packets_for_payload_type(&actual_packets, 97);
 
-    let sample_rate = read_config().output_sample_rate;
+    let config = read_config();
+    let sample_rate = config.output_sample_rate;
 
-    let mut expected_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
-    let mut actual_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
+    let mut expected_audio_decoder = AudioDecoder::new(config.clone(), channels)?;
+    let mut actual_audio_decoder = AudioDecoder::new(config, channels)?;
 
     for packet in expected_audio_packets {
         expected_audio_decoder.decode(packet)?;

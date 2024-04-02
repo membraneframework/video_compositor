@@ -3,6 +3,9 @@ use std::time::Duration;
 use anyhow::Result;
 
 use rtp::{codecs::opus::OpusPacket, packetizer::Depacketizer};
+use video_compositor::config::Config;
+
+use crate::PacketExt;
 
 #[derive(Clone)]
 pub struct AudioSampleBatch {
@@ -21,23 +24,23 @@ pub struct AudioDecoder {
     depayloader: OpusPacket,
     decoder: opus::Decoder,
     decoded_samples: Vec<AudioSampleBatch>,
-    sample_rate: u32,
+    config: Config,
 }
 
 impl AudioDecoder {
-    pub fn new(sample_rate: u32, channels: AudioChannels) -> Result<Self> {
+    pub fn new(config: Config, channels: AudioChannels) -> Result<Self> {
         let channels = match channels {
             AudioChannels::Mono => opus::Channels::Mono,
             AudioChannels::Stereo => opus::Channels::Stereo,
         };
-        let decoder = opus::Decoder::new(sample_rate, channels)?;
+        let decoder = opus::Decoder::new(config.output_sample_rate, channels)?;
 
         Ok(Self {
-            buffer: vec![0; sample_rate as usize * 20],
+            buffer: vec![0; config.output_sample_rate as usize * 20],
             depayloader: OpusPacket,
             decoder,
             decoded_samples: Vec::new(),
-            sample_rate,
+            config,
         })
     }
 
@@ -50,7 +53,7 @@ impl AudioDecoder {
         let samples_count = self.decoder.decode(&chunk_data, &mut self.buffer, false)?;
         self.decoded_samples.push(AudioSampleBatch {
             samples: self.buffer[..samples_count].to_vec(),
-            pts: Duration::from_secs_f64(packet.header.timestamp as f64 / self.sample_rate as f64),
+            pts: packet.pts(&self.config),
         });
 
         Ok(())

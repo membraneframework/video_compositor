@@ -15,7 +15,7 @@ pub fn muxed_video_audio() -> Result<()> {
     let output_receiver = OutputReceiver::start(
         output_port,
         CommunicationProtocol::Udp,
-        Duration::from_secs(20),
+        Duration::from_secs(10),
         "muxed_video_audio_output.rtp",
     )?;
 

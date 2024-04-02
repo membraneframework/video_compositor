@@ -12,15 +12,19 @@ use ffmpeg_next::{
     Rational,
 };
 use rtp::{codecs::h264::H264Packet, packetizer::Depacketizer};
+use video_compositor::config::Config;
+
+use crate::PacketExt;
 
 pub struct VideoDecoder {
     depayloader: H264Packet,
     decoder: decoder::Opened,
     decoded_frames: Vec<Frame>,
+    config: Config,
 }
 
 impl VideoDecoder {
-    pub fn new() -> Result<Self> {
+    pub fn new(config: Config) -> Result<Self> {
         let mut parameters = ffmpeg_next::codec::Parameters::new();
         unsafe {
             let parameters = &mut *parameters.as_mut_ptr();
@@ -43,11 +47,12 @@ impl VideoDecoder {
             decoder,
             depayloader: H264Packet::default(),
             decoded_frames: Vec::new(),
+            config,
         })
     }
 
     pub fn decode(&mut self, packet: rtp::packet::Packet) -> Result<()> {
-        let pts = packet.header.timestamp as f64 / 90000.0 * 1_000_000.0;
+        let pts = packet.pts(&self.config);
         let chunk_data = self.depayloader.depacketize(&packet.payload)?;
         if chunk_data.is_empty() {
             return Ok(());
@@ -55,7 +60,7 @@ impl VideoDecoder {
 
         let mut packet = ffmpeg_next::Packet::new(chunk_data.len());
         packet.data_mut().unwrap().copy_from_slice(&chunk_data);
-        packet.set_pts(Some(pts as i64));
+        packet.set_pts(Some(pts.as_micros() as i64));
         packet.set_dts(None);
 
         self.decoder.send_packet(&packet)?;
