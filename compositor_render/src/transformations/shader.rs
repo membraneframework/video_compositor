@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     scene::ShaderParam,
     wgpu::{common_pipeline::CreateShaderError, WgpuCtx},
-    RendererId,
 };
 
 use self::{pipeline::ShaderPipeline, validation::error::ParametersValidationError};
@@ -23,7 +22,6 @@ pub struct Shader {
 
 #[derive(Debug)]
 pub struct ShaderSpec {
-    pub shader_id: RendererId,
     pub source: Arc<str>,
 }
 

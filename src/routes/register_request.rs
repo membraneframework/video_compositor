@@ -1,35 +1,28 @@
-use axum::extract::State;
-use compositor_pipeline::pipeline::{Port, RegisterInputOptions};
-use compositor_render::InputId;
+use axum::extract::{Path, State};
+use compositor_pipeline::pipeline::Port;
 
 use crate::{
-    api::{Pipeline, Response},
+    state::{ApiState, Pipeline, Response},
     error::ApiError,
     routes::Json,
-    types::{ImageSpec, Mp4, RegisterOutputRequest, RtpInputStream, ShaderSpec, WebRendererSpec},
+    types::{
+        ImageSpec, InputId, Mp4, OutputId, RegisterOutputRequest, RendererId, RtpInputStream,
+        ShaderSpec, WebRendererSpec,
+    },
 };
 
-use super::Api;
-
-fn handle_register_input(
-    api: &Api,
-    input_id: InputId,
-    register_options: RegisterInputOptions,
-) -> Result<Response, ApiError> {
-    match Pipeline::register_input(&api.pipeline, input_id, register_options)? {
-        Some(Port(port)) => Ok(Response::RegisteredPort { port }),
-        None => Ok(Response::Ok {}),
-    }
-}
-
 pub(super) async fn handle_rtp_input_stream(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(input_id): Path<InputId>,
     Json(request): Json<RtpInputStream>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        let (input_id, register_options) = request.try_into()?;
-        handle_register_input(&api, input_id, register_options)
+        let result = Pipeline::register_input(&api.pipeline, input_id.into(), request.try_into()?)?;
+        match result {
+            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+            None => Ok(Response::Ok {}),
+        }
     })
     .await
     // `unwrap()` panics only when the task panicked or `response.abort()` was called
@@ -37,25 +30,33 @@ pub(super) async fn handle_rtp_input_stream(
 }
 
 pub(super) async fn handle_mp4(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(input_id): Path<InputId>,
     Json(request): Json<Mp4>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        let (input_id, register_options) = request.try_into()?;
-        handle_register_input(&api, input_id, register_options)
+        let result = Pipeline::register_input(&api.pipeline, input_id.into(), request.try_into()?)?;
+        match result {
+            Some(Port(port)) => Ok(Response::RegisteredPort { port }),
+            None => Ok(Response::Ok {}),
+        }
     })
     .await
     .unwrap()
 }
 
 pub(super) async fn handle_rtp_output_stream(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
     Json(request): Json<RegisterOutputRequest>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        match api.pipeline().register_output(request.try_into()?)? {
+        let result = api
+            .pipeline()
+            .register_output(output_id.into(), request.try_into()?)?;
+        match result {
             Some(Port(port)) => Ok(Response::RegisteredPort { port }),
             None => Ok(Response::Ok {}),
         }
@@ -65,12 +66,13 @@ pub(super) async fn handle_rtp_output_stream(
 }
 
 pub(super) async fn handle_shader(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(shader_id): Path<RendererId>,
     Json(request): Json<ShaderSpec>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
+        Pipeline::register_renderer(&api.pipeline, shader_id.into(), request.try_into()?)?;
         Ok(Response::Ok {})
     })
     .await
@@ -78,12 +80,13 @@ pub(super) async fn handle_shader(
 }
 
 pub(super) async fn handle_web_renderer(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(instance_id): Path<RendererId>,
     Json(request): Json<WebRendererSpec>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
+        Pipeline::register_renderer(&api.pipeline, instance_id.into(), request.try_into()?)?;
         Ok(Response::Ok {})
     })
     .await
@@ -91,12 +94,13 @@ pub(super) async fn handle_web_renderer(
 }
 
 pub(super) async fn handle_image(
-    State(api): State<Api>,
+    State(api): State<ApiState>,
+    Path(image_id): Path<RendererId>,
     Json(request): Json<ImageSpec>,
 ) -> Result<Response, ApiError> {
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
-        Pipeline::register_renderer(&api.pipeline, request.try_into()?)?;
+        Pipeline::register_renderer(&api.pipeline, image_id.into(), request.try_into()?)?;
         Ok(Response::Ok {})
     })
     .await

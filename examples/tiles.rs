@@ -36,10 +36,9 @@ fn start_example_client_code() -> Result<()> {
     start_websocket_thread();
 
     info!("[example] Send register input request.");
-    common::put(
-        "input/rtp-stream",
+    common::post(
+        "input/rtp-stream/input_1",
         &json!({
-            "input_id": "input_1",
             "port": INPUT_PORT,
             "video": {
                 "codec": "h264"
@@ -73,10 +72,9 @@ fn start_example_client_code() -> Result<()> {
     };
 
     info!("[example] Send register output request.");
-    common::put(
-        "output/rtp-stream",
+    common::post(
+        "output/rtp-stream/output_1",
         &json!({
-            "output_id": "output_1",
             "ip": IP,
             "port": OUTPUT_PORT,
             "video": {
@@ -120,7 +118,7 @@ fn start_example_client_code() -> Result<()> {
 
     info!("[example] Update output");
     common::post(
-        "output/rtp-stream/output_1",
+        "output/output_1",
         &json!({
             "video": scene_with_inputs(4),
             "schedule_time_ms": 40 * 1000,

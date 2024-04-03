@@ -2,11 +2,22 @@ use std::{fs, io, path::PathBuf};
 
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
-    schema_for,
+    schema_for, JsonSchema,
 };
-use video_compositor::types;
+use serde::{Deserialize, Serialize};
+use video_compositor::types::{self, *};
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+pub enum RegisterRequest {
+    RtpInputStream(RtpInputStream),
+    Mp4(Mp4),
+    OutputStream(RegisterOutputRequest),
+    Shader(ShaderSpec),
+    WebRenderer(WebRendererSpec),
+    Image(ImageSpec),
+}
 
 fn main() {
     let update_flag = std::env::args().any(|arg| &arg == "--update");
@@ -16,7 +27,7 @@ fn main() {
         "scene",
         update_flag,
     );
-    generate_schema(schema_for!(types::RegisterRequest), "register", update_flag);
+    generate_schema(schema_for!(RegisterRequest), "register", update_flag);
 }
 
 /// When variant inside oneOf has a schema additionalProperties set to false then

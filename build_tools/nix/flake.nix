@@ -80,7 +80,7 @@
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
 
               env.LIBCLANG_PATH = "${pkgs.llvmPackages_16.libclang.lib}/lib";
-              env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.mesa.drivers pkgs.libGL ]);
+              env.LD_LIBRARY_PATH = lib.makeLibraryPath (libcefDependencies ++ [ pkgs.mesa.drivers ]);
 
               inputsFrom = [ packageWithoutChromium ];
             };

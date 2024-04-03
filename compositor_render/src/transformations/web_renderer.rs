@@ -1,4 +1,4 @@
-use crate::{RendererId, Resolution};
+use crate::Resolution;
 use bytes::Bytes;
 use nalgebra_glm::Mat4;
 use std::sync::{Arc, Mutex};
@@ -43,7 +43,6 @@ pub struct WebRendererInitOptions {
 
 #[derive(Debug)]
 pub struct WebRendererSpec {
-    pub instance_id: RendererId,
     pub url: String,
     pub resolution: Resolution,
     pub embedding_method: WebEmbeddingMethod,

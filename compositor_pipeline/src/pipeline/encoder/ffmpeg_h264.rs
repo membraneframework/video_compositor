@@ -78,7 +78,6 @@ impl EncoderPreset {
 pub struct Options {
     pub preset: EncoderPreset,
     pub resolution: Resolution,
-    pub output_id: OutputId,
     pub raw_options: Vec<(String, String)>,
 }
 
@@ -89,6 +88,7 @@ pub struct LibavH264Encoder {
 
 impl LibavH264Encoder {
     pub fn new(
+        output_id: &OutputId,
         options: Options,
         chunks_sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
@@ -96,11 +96,11 @@ impl LibavH264Encoder {
         let (result_sender, result_receiver) = crossbeam_channel::bounded(0);
 
         let options_clone = options.clone();
+        let output_id = output_id.clone();
 
         std::thread::Builder::new()
-            .name(format!("Encoder thread for output {}", options.output_id))
+            .name(format!("Encoder thread for output {}", output_id))
             .spawn(move || {
-                let output_id = options_clone.output_id.clone();
                 let _span = span!(
                     Level::INFO,
                     "h264 ffmpeg encoder",
@@ -232,7 +232,7 @@ fn run_encoder_thread(
                         1_000_000,
                     ) {
                         Ok(chunk) => {
-                            trace!(output_id=?options.output_id.0, pts=?packet.pts(), "H264 encoder produced an encoded packet.");
+                            trace!(pts=?packet.pts(), "H264 encoder produced an encoded packet.");
                             if packet_sender.send(EncoderOutputEvent::Data(chunk)).is_err() {
                                 warn!("Failed to send encoded video from H264 encoder. Channel closed.");
                                 return Ok(());

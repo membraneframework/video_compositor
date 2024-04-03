@@ -109,39 +109,39 @@ impl Renderer {
         self.0.lock().unwrap().scene.unregister_output(output_id)
     }
 
-    pub fn register_renderer(&self, spec: RendererSpec) -> Result<(), RegisterRendererError> {
+    pub fn register_renderer(
+        &self,
+        renderer_id: RendererId,
+        spec: RendererSpec,
+    ) -> Result<(), RegisterRendererError> {
         let ctx = self.0.lock().unwrap().register_ctx();
         match spec {
             RendererSpec::Shader(spec) => {
-                let shader_id = spec.shader_id.clone();
-
                 let shader = Shader::new(&ctx.wgpu_ctx, spec)
-                    .map_err(|err| RegisterRendererError::Shader(err, shader_id.clone()))?;
+                    .map_err(|err| RegisterRendererError::Shader(err, renderer_id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
                 Ok(guard
                     .renderers
                     .shaders
-                    .register(shader_id, Arc::new(shader))?)
+                    .register(renderer_id, Arc::new(shader))?)
             }
             RendererSpec::WebRenderer(params) => {
-                let instance_id = params.instance_id.clone();
-                let web = WebRenderer::new(&ctx, params)
-                    .map_err(|err| RegisterRendererError::Web(err, instance_id.clone()))?;
+                let web = WebRenderer::new(&ctx, &renderer_id, params)
+                    .map_err(|err| RegisterRendererError::Web(err, renderer_id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
                 Ok(guard
                     .renderers
                     .web_renderers
-                    .register(instance_id, Arc::new(web))?)
+                    .register(renderer_id, Arc::new(web))?)
             }
             RendererSpec::Image(spec) => {
-                let image_id = spec.image_id.clone();
                 let asset = Image::new(&ctx, spec)
-                    .map_err(|err| RegisterRendererError::Image(err, image_id.clone()))?;
+                    .map_err(|err| RegisterRendererError::Image(err, renderer_id.clone()))?;
 
                 let mut guard = self.0.lock().unwrap();
-                Ok(guard.renderers.images.register(image_id, asset)?)
+                Ok(guard.renderers.images.register(renderer_id, asset)?)
             }
         }
     }

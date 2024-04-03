@@ -6,7 +6,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    api::{Api, Response},
+    state::{ApiState, Response},
     error::ApiError,
     types::{InputId, OutputId, RendererId},
 };
@@ -22,8 +22,8 @@ pub struct ScheduledRequest {
 }
 
 pub(super) async fn handle_rtp_input_stream(
-    State(api): State<Api>,
-    Path((input_id,)): Path<(InputId,)>,
+    State(api): State<ApiState>,
+    Path(input_id): Path<InputId>,
     Json(request): Json<ScheduledRequest>,
 ) -> Result<Response, ApiError> {
     match request.schedule_time_ms {
@@ -51,8 +51,8 @@ pub(super) async fn handle_rtp_input_stream(
 }
 
 pub(super) async fn handle_rtp_output_stream(
-    State(api): State<Api>,
-    Path((output_id,)): Path<(OutputId,)>,
+    State(api): State<ApiState>,
+    Path(output_id): Path<OutputId>,
     Json(request): Json<ScheduledRequest>,
 ) -> Result<Response, ApiError> {
     match request.schedule_time_ms {
@@ -84,8 +84,8 @@ pub(super) async fn handle_rtp_output_stream(
 }
 
 pub(super) async fn handle_shader(
-    State(api): State<Api>,
-    Path((shader_id,)): Path<(RendererId,)>,
+    State(api): State<ApiState>,
+    Path(shader_id): Path<RendererId>,
 ) -> Result<Response, ApiError> {
     api.pipeline()
         .unregister_renderer(&shader_id.into(), RegistryType::Shader)?;
@@ -93,8 +93,8 @@ pub(super) async fn handle_shader(
 }
 
 pub(super) async fn handle_web_renderer(
-    State(api): State<Api>,
-    Path((instance_id,)): Path<(RendererId,)>,
+    State(api): State<ApiState>,
+    Path(instance_id): Path<RendererId>,
 ) -> Result<Response, ApiError> {
     api.pipeline()
         .unregister_renderer(&instance_id.into(), RegistryType::WebRenderer)?;
@@ -102,8 +102,8 @@ pub(super) async fn handle_web_renderer(
 }
 
 pub(super) async fn handle_image(
-    State(api): State<Api>,
-    Path((image_id,)): Path<(RendererId,)>,
+    State(api): State<ApiState>,
+    Path(image_id): Path<RendererId>,
 ) -> Result<Response, ApiError> {
     api.pipeline()
         .unregister_renderer(&image_id.into(), RegistryType::Image)?;

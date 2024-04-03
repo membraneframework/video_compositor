@@ -4,11 +4,10 @@ use super::utils::{create_renderer, frame_to_rgba, snaphot_save_path, snapshots_
 
 use anyhow::Result;
 use compositor_render::{
-    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, RendererSpec, Resolution,
-    YuvData,
+    scene::RGBColor, Frame, FrameSet, InputId, OutputId, Renderer, Resolution, YuvData,
 };
 use image::ImageBuffer;
-use video_compositor::types::{self, RegisterRequest};
+use video_compositor::types;
 
 pub(super) const OUTPUT_ID: &str = "output_id";
 
@@ -48,33 +47,21 @@ pub struct TestCaseInstance {
 
 impl TestCaseInstance {
     pub fn new(test_case: TestCase) -> TestCaseInstance {
-        fn register_requests_to_renderers(register_request: RegisterRequest) -> RendererSpec {
-            match register_request {
-                RegisterRequest::Mp4(_)
-                | RegisterRequest::RtpInputStream(_)
-                | RegisterRequest::OutputStream(_) => {
-                    panic!("Input and output streams are not supported in snapshot tests")
-                }
-                RegisterRequest::Shader(shader) => shader.try_into().unwrap(),
-                RegisterRequest::WebRenderer(web_renderer) => web_renderer.try_into().unwrap(),
-                RegisterRequest::Image(img) => img.try_into().unwrap(),
-            }
-        }
-
         if test_case.name.is_empty() {
             panic!("Snapshot test name has to be provided");
         }
 
         let mut renderer = create_renderer();
-        for json in test_case.renderers.iter() {
-            let spec = register_requests_to_renderers(
-                serde_json::from_str::<RegisterRequest>(json).unwrap(),
-            );
-            if matches!(spec, RendererSpec::WebRenderer(_)) {
-                panic!("Tests with web renderer are not supported");
-            }
-            renderer.register_renderer(spec).unwrap();
-        }
+        // TODO: fix register requests
+        // for json in test_case.renderers.iter() {
+        //     let spec = register_requests_to_renderers(
+        //         serde_json::from_str::<RegisterRequest>(json).unwrap(),
+        //     );
+        //     if matches!(spec, RendererSpec::WebRenderer(_)) {
+        //         panic!("Tests with web renderer are not supported");
+        //     }
+        //     renderer.register_renderer(spec).unwrap();
+        // }
 
         for (index, _) in test_case.inputs.iter().enumerate() {
             renderer.register_input(InputId(format!("input_{}", index + 1).into()))

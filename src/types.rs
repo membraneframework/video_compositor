@@ -42,7 +42,6 @@ pub use component::WebView;
 pub use register_request::Mp4;
 #[allow(unused_imports)]
 pub use register_request::RegisterOutputRequest;
-pub use register_request::RegisterRequest;
 #[allow(unused_imports)]
 pub use register_request::RtpInputStream;
 

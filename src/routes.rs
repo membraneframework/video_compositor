@@ -3,15 +3,15 @@ use axum::{
     extract::{rejection::JsonRejection, ws::WebSocketUpgrade, FromRequest, Request, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post, put},
+    routing::{get, post},
     Router,
 };
 use compositor_pipeline::Pipeline;
 use serde_json::{json, Value};
 
 use crate::{
-    api::{Api, Response},
     error::ApiError,
+    state::{ApiState, Response},
 };
 
 use self::{update_output::handle_output_update, ws::handle_ws_upgrade};
@@ -21,43 +21,43 @@ mod unregister_request;
 mod update_output;
 mod ws;
 
-pub fn routes(api: Api) -> Router {
+pub fn routes(state: ApiState) -> Router {
     let rtp_input = Router::new()
-        .route("/", put(register_request::handle_rtp_input_stream))
+        .route("/:id", post(register_request::handle_rtp_input_stream))
         .route(
             "/:id/unregister",
             post(unregister_request::handle_rtp_input_stream),
         );
 
-    let mp4_input = Router::new().route("/mp4", put(register_request::handle_mp4));
+    let mp4_input = Router::new().route("/mp4", post(register_request::handle_mp4));
 
     let output = Router::new()
         .route(
-            "/rtp-stream",
-            put(register_request::handle_rtp_output_stream),
+            "/rtp-stream/:id",
+            post(register_request::handle_rtp_output_stream),
         )
         .route(
             "/rtp-stream/:id/unregister",
             post(unregister_request::handle_rtp_output_stream),
         )
-        .route("/rtp-stream/:id", post(handle_output_update));
+        .route("/:id", post(handle_output_update));
 
     let web_renderer = Router::new()
-        .route("/", put(register_request::handle_web_renderer))
+        .route("/:id", post(register_request::handle_web_renderer))
         .route(
             "/:id/unregister",
             post(unregister_request::handle_web_renderer),
         );
 
     let image_renderer = Router::new()
-        .route("/", put(register_request::handle_image))
+        .route("/:id", post(register_request::handle_image))
         .route("/:id/unregister", post(unregister_request::handle_image));
 
     let shader_renderer = Router::new()
-        .route("/", put(register_request::handle_shader))
+        .route("/:id", post(register_request::handle_shader))
         .route("/:id/unregister", post(unregister_request::handle_shader));
 
-    async fn handle_start(State(api): State<Api>) -> Result<Response, ApiError> {
+    async fn handle_start(State(api): State<ApiState>) -> Result<Response, ApiError> {
         Pipeline::start(&api.pipeline);
         Ok(Response::Ok {})
     }
@@ -76,10 +76,10 @@ pub fn routes(api: Api) -> Router {
         .route(
             "/status",
             get(axum::Json(json!({
-                "instance_id": api.config.instance_id
+                "instance_id": state.config.instance_id
             }))),
         )
-        .with_state(api)
+        .with_state(state)
 }
 
 async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {

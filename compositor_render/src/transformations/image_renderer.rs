@@ -19,13 +19,12 @@ use crate::{
         texture::{NodeTexture, RGBATexture},
         WgpuCtx,
     },
-    RendererId, Resolution,
+    Resolution,
 };
 
 #[derive(Debug)]
 pub struct ImageSpec {
     pub src: ImageSource,
-    pub image_id: RendererId,
     pub image_type: ImageType,
 }
 

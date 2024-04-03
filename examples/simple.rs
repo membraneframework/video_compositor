@@ -41,10 +41,9 @@ fn start_example_client_code() -> Result<()> {
     let sample_path = download_file(SAMPLE_FILE_URL, SAMPLE_FILE_PATH)?;
 
     info!("[example] Send register input request.");
-    common::put(
-        "input/rtp-stream",
+    common::post(
+        "input/rtp-stream/input_1",
         &json!({
-            "input_id": "input_1",
             "port": INPUT_PORT,
             "video": {
                 "codec": "h264"
@@ -54,19 +53,17 @@ fn start_example_client_code() -> Result<()> {
 
     let shader_source = include_str!("./silly.wgsl");
     info!("[example] Register shader transform");
-    common::put(
-        "shader",
+    common::post(
+        "shader/shader_example_1",
         &json!({
-            "shader_id": "shader_example_1",
             "source": shader_source,
         }),
     )?;
 
     info!("[example] Send register output request.");
-    common::put(
-        "output/rtp-stream",
+    common::post(
+        "output/rtp-stream/output_1",
         &json!({
-            "output_id": "output_1",
             "port": OUTPUT_PORT,
             "ip": IP,
             "video": {
