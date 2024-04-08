@@ -1,7 +1,7 @@
 name: build, lint and test
 on:
     push:
-        branches: [master]
+        branches: [master, '@noituri/debug-integration-tests-failing']
     pull_request:
         types: [opened, synchronize]
 
