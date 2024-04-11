@@ -1,7 +1,7 @@
 name: build, lint and test
 on:
     push:
-        branches: [master, '@@noituri/fix-schedule-update-test']
+        branches: [master, '@noituri/fix-schedule-update-test']
     pull_request:
         types: [opened, synchronize]
 
