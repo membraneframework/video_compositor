@@ -20,7 +20,7 @@ pub fn schedule_update() -> Result<()> {
     let output_port = instance.get_port();
 
     instance.send_request(
-        "output/output_1/register",
+        "output/output_with_animation/register",
         json!({
             "type": "rtp_stream",
             "transport_protocol": "tcp_server",
@@ -49,7 +49,7 @@ pub fn schedule_update() -> Result<()> {
                         "children": [
                             {
                                 "type": "input_stream",
-                                "input_id": "input_1",
+                                "input_id": "input_1_anim",
                             },
                         ],
                     }
@@ -59,7 +59,7 @@ pub fn schedule_update() -> Result<()> {
     )?;
 
     instance.send_request(
-        "output/output_1/update",
+        "output/output_with_animation/update",
         json!({
             "video": {
                 "root": {
@@ -76,11 +76,11 @@ pub fn schedule_update() -> Result<()> {
                     "children": [
                         {
                             "type": "input_stream",
-                            "input_id": "input_1",
+                            "input_id": "input_1_anim",
                         },
                         {
                             "type": "input_stream",
-                            "input_id": "input_2",
+                            "input_id": "input_2_anim",
                         },
                     ],
                 }
@@ -90,7 +90,7 @@ pub fn schedule_update() -> Result<()> {
     )?;
 
     instance.send_request(
-        "output/output_1/unregister",
+        "output/output_with_animation/unregister",
         json!({
             "schedule_time_ms": 20000,
         }),
@@ -99,7 +99,7 @@ pub fn schedule_update() -> Result<()> {
     let output_receiver = OutputReceiver::start(output_port, CommunicationProtocol::Tcp)?;
 
     instance.send_request(
-        "input/input_1/register",
+        "input/input_1_anim/register",
         json!({
             "type": "rtp_stream",
             "transport_protocol": "udp",
@@ -111,7 +111,7 @@ pub fn schedule_update() -> Result<()> {
     )?;
 
     instance.send_request(
-        "input/input_2/register",
+        "input/input_2_anim/register",
         json!({
             "type": "rtp_stream",
             "transport_protocol": "tcp_server",
