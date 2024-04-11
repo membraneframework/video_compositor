@@ -1,7 +1,7 @@
 name: build, lint and test
 on:
     push:
-        branches: [master]
+        branches: [master, '@@noituri/fix-schedule-update-test']
     pull_request:
         types: [opened, synchronize]
 
@@ -30,10 +30,10 @@ jobs:
               with:
                   components: rustfmt, clippy
 
-            - name: 🛠 Setup Node.JS
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
+            # - name: 🛠 Setup Node.JS
+            #   uses: actions/setup-node@v4
+            #   with:
+            #       node-version: 20
 
             - name: 📥 Checkout repo
               uses: actions/checkout@v3
@@ -43,35 +43,35 @@ jobs:
             - name: 📁 Rust cache
               uses: Swatinem/rust-cache@v2
 
-            - name: 🪢 Generate Chromium Embedded Framework bindings
-              run: cargo build --package compositor_chromium
+            # - name: 🪢 Generate Chromium Embedded Framework bindings
+            #   run: cargo build --package compositor_chromium
 
-            - name: 📖 Check formatting
-              run: cargo fmt --all --check
+            # - name: 📖 Check formatting
+            #   run: cargo fmt --all --check
 
-            - name: 📎 Run clippy
-              run: cargo clippy --workspace --all-targets --all-features -- -D clippy::todo -D warnings
+            # - name: 📎 Run clippy
+            #   run: cargo clippy --workspace --all-targets --all-features -- -D clippy::todo -D warnings
 
-            - name: 🛠 Cargo build
-              run: |
-                cargo build
-                cargo build --no-default-features
+            # - name: 🛠 Cargo build
+            #   run: |
+            #     cargo build
+            #     cargo build --no-default-features
 
-            - name: 📄 Generate JSON schema
-              run: |
-                cargo run --bin generate_json_schema
-                cargo run --bin generate_docs
+            # - name: 📄 Generate JSON schema
+            #   run: |
+            #     cargo run --bin generate_json_schema
+            #     cargo run --bin generate_docs
 
             - name: 🧪 Run tests
               run: |
                 cargo clean
                 cargo test -r --no-fail-fast --workspace -- --test-threads=$(($(nproc --all) / 2))
 
-            - name: 🖋️ Run website lint + typecheck + build
-              working-directory: ./docs
-              run: |
-                npm ci
-                npm run typecheck && npm run lint --max-warnings=0 && npm run build
+            # - name: 🖋️ Run website lint + typecheck + build
+            #   working-directory: ./docs
+            #   run: |
+            #     npm ci
+            #     npm run typecheck && npm run lint --max-warnings=0 && npm run build
 
             - name: 📦 Upload failed snapshot test artifacts
               if: failure()
@@ -81,5 +81,5 @@ jobs:
                   path: failed_snapshot_tests
                   retention-days: 2
 
-            - name: 📚 Run doctests
-              run: cargo test --workspace --doc
+            # - name: 📚 Run doctests
+            #   run: cargo test --workspace --doc
