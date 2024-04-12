@@ -106,7 +106,7 @@ fn get_free_port() -> u16 {
     LAST_PORT.fetch_add(1, Ordering::Relaxed)
 }
 
-fn init_compositor_prerequisites() {
+pub fn init_compositor_prerequisites() {
     static GLOBAL_PREREQUISITES_INITIALIZED: OnceLock<()> = OnceLock::new();
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
@@ -114,7 +114,7 @@ fn init_compositor_prerequisites() {
         logger::init_logger(LoggerConfig {
             ffmpeg_logger_level: FfmpegLogLevel::Info,
             format: LoggerFormat::Compact,
-            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
+            level: "trace,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
         use_global_wgpu_ctx();
     });
