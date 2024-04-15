@@ -11,6 +11,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+use tokio::runtime;
 use tracing::info;
 use video_compositor::{
     config::{read_config, LoggerConfig, LoggerFormat},
@@ -46,7 +47,14 @@ impl CompositorInstance {
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                run_api(state, should_close_receiver).unwrap();
+                let rt = runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_io()
+                    .build()
+                    .unwrap();
+
+                rt.block_on(async { run_api(state, should_close_receiver).await })
+                    .unwrap();
             })
             .unwrap();
 
@@ -114,7 +122,7 @@ pub fn init_compositor_prerequisites() {
         logger::init_logger(LoggerConfig {
             ffmpeg_logger_level: FfmpegLogLevel::Info,
             format: LoggerFormat::Compact,
-            level: "trace,wgpu_hal=warn,wgpu_core=warn".to_string(),
+            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
         });
         use_global_wgpu_ctx();
     });
