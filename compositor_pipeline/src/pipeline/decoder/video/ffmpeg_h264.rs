@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{thread, time::Duration};
 
 use crate::{
     error::DecoderInitError,
@@ -10,11 +10,19 @@ use compositor_render::{Frame, InputId, Resolution, YuvData};
 use crossbeam_channel::{Receiver, Sender};
 use ffmpeg_next::{
     codec::{Context, Id},
+    decoder::Opened,
     frame::Video,
     media::Type,
     Rational,
 };
-use tracing::{debug, error, span, trace, warn, Level};
+use h264_reader::nal::{pps::PicParameterSet, Nal, RefNal, UnitType};
+use h264_reader::{
+    annexb::AnnexBReader,
+    nal::sps::SeqParameterSet,
+    push::NalInterest,
+    rbsp::{BitReader, ByteReader},
+};
+use tracing::{debug, error, info, span, trace, warn, Level};
 
 pub fn start_ffmpeg_decoder_thread(
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
@@ -62,13 +70,8 @@ enum DecoderChunkConversionError {
     BadPayloadType(EncodedChunkKind),
 }
 
-fn run_decoder_thread(
-    parameters: ffmpeg_next::codec::Parameters,
-    init_result_sender: Sender<Result<(), DecoderInitError>>,
-    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
-    frame_sender: Sender<PipelineEvent<Frame>>,
-) {
-    let decoder = Context::from_parameters(parameters.clone())
+fn create_decoder(parameters: ffmpeg_next::codec::Parameters) -> Result<Opened, DecoderInitError> {
+    Context::from_parameters(parameters.clone())
         .map_err(DecoderInitError::FfmpegError)
         .and_then(|mut decoder| {
             unsafe {
@@ -81,9 +84,16 @@ fn run_decoder_thread(
             decoder
                 .open_as(Into::<Id>::into(parameters.id()))
                 .map_err(DecoderInitError::FfmpegError)
-        });
+        })
+}
 
-    let mut decoder = match decoder {
+fn run_decoder_thread(
+    parameters: ffmpeg_next::codec::Parameters,
+    init_result_sender: Sender<Result<(), DecoderInitError>>,
+    chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
+    frame_sender: Sender<PipelineEvent<Frame>>,
+) {
+    let mut decoder = match create_decoder(parameters.clone()) {
         Ok(decoder) => {
             init_result_sender.send(Ok(())).unwrap();
             decoder
@@ -96,6 +106,8 @@ fn run_decoder_thread(
 
     let mut decoded_frame = ffmpeg_next::frame::Video::empty();
     let mut pts_offset = None;
+    let mut last_sps_width = 0;
+    let mut should_restart = false;
     for chunk in chunks_receiver {
         let chunk = match chunk {
             PipelineEvent::Data(chunk) => chunk,
@@ -103,6 +115,81 @@ fn run_decoder_thread(
                 break;
             }
         };
+        warn!("before reader");
+
+        let mut reader = AnnexBReader::accumulate(|nal: RefNal<'_>| {
+            let nal_unit_type = nal.header().unwrap().nal_unit_type();
+            match nal_unit_type {
+                UnitType::SeqParameterSet => {
+                    warn!("NALU {:?}", nal.header().unwrap());
+                    if nal.is_complete() {
+                        let Ok(sps) = SeqParameterSet::from_bits(BitReader::new(ByteReader::new(
+                            nal.reader(),
+                        ))) else {
+                            warn!("Unknown sps error");
+                            return NalInterest::Ignore;
+                        };
+                        if last_sps_width != sps.pic_width_in_mbs_minus1 {
+                            if last_sps_width != 0 {
+                                should_restart = true;
+                            }
+                            error!("New width {}", sps.pic_width_in_mbs_minus1);
+                            last_sps_width = sps.pic_width_in_mbs_minus1
+                        }
+                    }
+                    NalInterest::Buffer
+                }
+                _ => {
+                    warn!("NALU {:?}", nal.header().unwrap());
+                    NalInterest::Ignore
+                }
+            }
+        });
+        warn!("before push");
+        reader.push(&chunk.data);
+        if should_restart {
+            thread::sleep(Duration::from_secs(1));
+            error!("Restarting decoder");
+            should_restart = false;
+
+            let mut parameters = ffmpeg_next::codec::Parameters::new();
+            unsafe {
+                let parameters = &mut *parameters.as_mut_ptr();
+        
+                parameters.codec_type = Type::Video.into();
+                parameters.codec_id = Id::H264.into();
+            };
+            decoder = create_decoder(parameters).unwrap();
+            decoded_frame = ffmpeg_next::frame::Video::empty();
+            let mut reader = AnnexBReader::accumulate(|nal: RefNal<'_>| {
+                let nal_unit_type = nal.header().unwrap().nal_unit_type();
+                match nal_unit_type {
+                    UnitType::SeqParameterSet => {
+                        warn!("NALU {:#?}", nal.header().unwrap());
+                        if nal.is_complete() {
+                            let Ok(sps) = SeqParameterSet::from_bits(BitReader::new(
+                                ByteReader::new(nal.reader()),
+                            )) else {
+                                warn!("Unknown sps error");
+                                return NalInterest::Buffer;
+                            };
+                            warn!("??????????????? {sps:#?}")
+                        } else{
+                            warn!("not complete")
+                        }
+                        NalInterest::Buffer
+                    },
+                    _ => {
+                        warn!("NALU {:?}", nal.header().unwrap());
+                        NalInterest::Ignore
+                    },
+                }
+            });
+            reader.push(&chunk.data);
+
+            thread::sleep(Duration::from_secs(1));
+        }
+        warn!("after push");
         if chunk.kind != EncodedChunkKind::Video(VideoCodec::H264) {
             error!(
                 "H264 decoder received chunk of wrong kind: {:?}",
@@ -175,6 +262,7 @@ fn frame_from_av(
     if decoded.format() != ffmpeg_next::format::pixel::Pixel::YUV420P {
         panic!("only YUV420P is supported");
     }
+    info!("resolution {}x{}", decoded.width(), decoded.height());
     let original_pts = decoded.pts();
     if let (Some(pts), None) = (decoded.pts(), &pts_offset) {
         *pts_offset = Some(-pts)

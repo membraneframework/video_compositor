@@ -1,7 +1,7 @@
-use std::{io::Read, mem, time::Duration};
+use std::{io::Read, mem, time::Duration, u32};
 
 use bytes::{Buf, Bytes, BytesMut};
-use log::error;
+use log::{error, info};
 use rtp::{
     codecs::{h264::H264Packet, opus::OpusPacket},
     packetizer::Depacketizer,
@@ -67,6 +67,7 @@ impl Depayloader {
 
 pub enum VideoDepayloader {
     H264 {
+        first_offset: u32,
         depayloader: H264Packet,
         buffer: Vec<Bytes>,
         rollover_state: RolloverState,
@@ -77,6 +78,7 @@ impl VideoDepayloader {
     pub fn new(options: &decoder::VideoDecoderOptions) -> Self {
         match options.codec {
             VideoCodec::H264 => VideoDepayloader::H264 {
+                first_offset: 0,
                 depayloader: H264Packet::default(),
                 buffer: vec![],
                 rollover_state: RolloverState::default(),
@@ -90,12 +92,20 @@ impl VideoDepayloader {
     ) -> Result<Vec<EncodedChunk>, DepayloadingError> {
         match self {
             VideoDepayloader::H264 {
+                first_offset,
                 depayloader,
                 buffer,
                 rollover_state,
             } => {
+                if *first_offset == 0 {
+                    *first_offset = packet.header.timestamp
+                }
                 let kind = EncodedChunkKind::Video(VideoCodec::H264);
                 let h264_chunk = depayloader.depacketize(&packet.payload)?;
+                
+                let time = Duration::from_secs_f64((packet.header.timestamp - *first_offset) as f64 / 90000.0);
+
+                info!("Packet {:?} {time:?} is_empty:{} has_marker:{}", packet.header, h264_chunk.is_empty(), packet.header.marker);
 
                 if h264_chunk.is_empty() {
                     return Ok(Vec::new());

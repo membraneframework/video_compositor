@@ -23,3 +23,4 @@ reqwest = { workspace = true }
 tracing = { workspace = true }
 fdk-aac-sys = "0.5.0"
 rubato = "0.15.0"
+h264-reader = "0.7.0"

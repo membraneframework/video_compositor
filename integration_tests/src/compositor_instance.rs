@@ -37,6 +37,7 @@ impl CompositorInstance {
         let api_port = get_free_port();
         let mut config = read_config();
         config.api_port = api_port;
+        config.queue_options.ahead_of_time_processing = true;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
@@ -112,9 +113,9 @@ fn init_compositor_prerequisites() {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
         logger::init_logger(LoggerConfig {
-            ffmpeg_logger_level: FfmpegLogLevel::Info,
+            ffmpeg_logger_level: FfmpegLogLevel::Debug,
             format: LoggerFormat::Compact,
-            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
+            level: "info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline=debug,compositor_pipeline::pipeline::decoder=trace".to_string(),
         });
         use_global_wgpu_ctx();
     });
