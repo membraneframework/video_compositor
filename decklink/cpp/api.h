@@ -36,3 +36,8 @@ void input_set_callback(IDeckLinkInput *input, rust::Box<DynInputCallback> cb);
 void input_start_streams(IDeckLinkInput *input);
 void input_stop_streams(IDeckLinkInput *input);
 void input_release(IDeckLinkInput *input) noexcept;
+
+long video_input_frame_width(IDeckLinkVideoInputFrame* input) noexcept;
+long video_input_frame_height(IDeckLinkVideoInputFrame* input) noexcept;
+long video_input_frame_row_bytes(IDeckLinkVideoInputFrame* input) noexcept;
+uint8_t* video_input_frame_bytes(IDeckLinkVideoInputFrame* input);

@@ -1,5 +1,3 @@
-use anyhow::Result;
-
 use api::{get_decklinks, DeckLink};
 
 pub(crate) mod api;
@@ -15,6 +13,7 @@ pub use enums::ffi::VideoInputConversionMode;
 pub use enums::ffi::VideoInputFlags;
 
 pub use api::AudioInputPacket;
+pub use api::Input;
 pub use api::VideoInputFrame;
 pub use input_callback::InputCallback;
 pub use input_callback::InputCallbackResult;
@@ -22,7 +21,7 @@ pub use input_callback::InputCallbackResult;
 //pub use input_callback::InputCallback;
 //pub use input_callback::InputCallbackResult;
 //
-pub fn find_decklink_with_capture_support() -> Result<Option<DeckLink>> {
+pub fn find_decklink_with_capture_support() -> Result<Option<DeckLink>, DeckLinkError> {
     let decklinks = get_decklinks()?;
 
     for decklink in decklinks {
@@ -34,4 +33,10 @@ pub fn find_decklink_with_capture_support() -> Result<Option<DeckLink>> {
         }
     }
     Ok(None)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum DeckLinkError {
+    #[error("Unknown error: {0:#}")]
+    UnknownError(#[from] cxx::Exception),
 }

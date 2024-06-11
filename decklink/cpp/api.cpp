@@ -63,6 +63,10 @@ IDeckLinkInput *decklink_input(IDeckLink *decklink) {
 
 void decklink_release(IDeckLink *decklink) noexcept { decklink->Release(); }
 
+//
+// IDeckLinkProfileAttributes
+//
+
 bool profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
                              FlagAttributeId id) {
   bool value;
@@ -102,6 +106,10 @@ rust::String profile_attributes_string(IDeckLinkProfileAttributes *attrs,
 void profile_attributes_release(IDeckLinkProfileAttributes *attrs) noexcept {
   attrs->Release();
 }
+
+//
+// IDeckLinkInput
+//
 
 DisplayMode
 input_supports_video_mode(IDeckLinkInput *input, VideoConnection conn,
@@ -165,3 +173,28 @@ void input_stop_streams(IDeckLinkInput *input) {
 }
 
 void input_release(IDeckLinkInput *input) noexcept { input->Release(); }
+
+//
+// IDeckLinkVideoInputFrame
+//
+
+long video_input_frame_width(IDeckLinkVideoInputFrame *input) noexcept {
+  return input->GetWidth();
+}
+
+long video_input_frame_height(IDeckLinkVideoInputFrame *input) noexcept {
+  return input->GetHeight();
+}
+
+long video_input_frame_row_bytes(IDeckLinkVideoInputFrame *input) noexcept {
+  return input->GetRowBytes();
+}
+
+uint8_t *video_input_frame_bytes(IDeckLinkVideoInputFrame *input) {
+  void *buffer = nullptr;
+  auto result = input->GetBytes(&buffer);
+  if (result != S_OK) {
+    throw std::runtime_error("IDeckLinkVideoInputFrame::GetBytes failed.");
+  }
+  return reinterpret_cast<uint8_t*>(buffer);
+}

@@ -1,4 +1,7 @@
-use crate::input_callback::{InputCallback, InputCallbackResult};
+use crate::{
+    input_callback::{InputCallback, InputCallbackResult},
+    DeckLinkError,
+};
 
 #[cxx::bridge]
 mod ffi {
@@ -140,6 +143,14 @@ mod ffi {
 
         unsafe fn input_release(input: *mut IDeckLinkInput);
     }
+
+    // IDeckLinkVideoInputFrame
+    extern "C++" {
+        unsafe fn video_input_frame_height(input: *mut IDeckLinkVideoInputFrame) -> i64;
+        unsafe fn video_input_frame_width(input: *mut IDeckLinkVideoInputFrame) -> i64;
+        unsafe fn video_input_frame_row_bytes(input: *mut IDeckLinkVideoInputFrame) -> i64;
+        unsafe fn video_input_frame_bytes(input: *mut IDeckLinkVideoInputFrame) -> Result<*mut u8>;
+    }
 }
 
 pub use ffi::{into_video_io_support, IntegerAttributeId};
@@ -147,11 +158,11 @@ pub use ffi::{into_video_io_support, IntegerAttributeId};
 pub struct DeckLink(*mut ffi::IDeckLink);
 
 impl DeckLink {
-    pub fn profile_attributes(&self) -> Result<ProfileAttributes, cxx::Exception> {
+    pub fn profile_attributes(&self) -> Result<ProfileAttributes, DeckLinkError> {
         let attrs = unsafe { ffi::decklink_profile_attributes(self.0) }?;
         Ok(ProfileAttributes(attrs))
     }
-    pub fn input(&self) -> Result<Input, cxx::Exception> {
+    pub fn input(&self) -> Result<Input, DeckLinkError> {
         let input = unsafe { ffi::decklink_input(self.0) }?;
         Ok(Input(input))
     }
@@ -163,7 +174,7 @@ impl Drop for DeckLink {
     }
 }
 
-pub fn get_decklinks() -> Result<Vec<DeckLink>, cxx::Exception> {
+pub fn get_decklinks() -> Result<Vec<DeckLink>, DeckLinkError> {
     let ptrs = ffi::get_decklinks()?;
     Ok(ptrs
         .into_iter()
@@ -174,17 +185,17 @@ pub fn get_decklinks() -> Result<Vec<DeckLink>, cxx::Exception> {
 pub struct ProfileAttributes(*mut ffi::IDeckLinkProfileAttributes);
 
 impl ProfileAttributes {
-    pub fn get_flag(&self, id: ffi::FlagAttributeId) -> Result<bool, cxx::Exception> {
-        unsafe { ffi::profile_attributes_flag(self.0, id) }
+    pub fn get_flag(&self, id: ffi::FlagAttributeId) -> Result<bool, DeckLinkError> {
+        unsafe { Ok(ffi::profile_attributes_flag(self.0, id)?) }
     }
-    pub fn get_integer(&self, id: ffi::IntegerAttributeId) -> Result<i64, cxx::Exception> {
-        unsafe { ffi::profile_attributes_integer(self.0, id) }
+    pub fn get_integer(&self, id: ffi::IntegerAttributeId) -> Result<i64, DeckLinkError> {
+        unsafe { Ok(ffi::profile_attributes_integer(self.0, id)?) }
     }
-    pub fn get_float(&self, id: ffi::FloatAttributeId) -> Result<f64, cxx::Exception> {
-        unsafe { ffi::profile_attributes_float(self.0, id) }
+    pub fn get_float(&self, id: ffi::FloatAttributeId) -> Result<f64, DeckLinkError> {
+        unsafe { Ok(ffi::profile_attributes_float(self.0, id)?) }
     }
-    pub fn get_string(&self, id: ffi::StringAttributeId) -> Result<String, cxx::Exception> {
-        unsafe { ffi::profile_attributes_string(self.0, id) }
+    pub fn get_string(&self, id: ffi::StringAttributeId) -> Result<String, DeckLinkError> {
+        unsafe { Ok(ffi::profile_attributes_string(self.0, id)?) }
     }
 }
 
@@ -204,16 +215,16 @@ impl Input {
         pixel_format: ffi::PixelFormat,
         conversion_mode: ffi::VideoInputConversionMode,
         supported_mode_flags: ffi::SupportedVideoModeFlags,
-    ) -> Result<ffi::DisplayMode, cxx::Exception> {
+    ) -> Result<ffi::DisplayMode, DeckLinkError> {
         unsafe {
-            ffi::input_supports_video_mode(
+            Ok(ffi::input_supports_video_mode(
                 self.0,
                 conn,
                 mode,
                 pixel_format,
                 conversion_mode,
                 supported_mode_flags,
-            )
+            )?)
         }
     }
     pub fn enable_video_output(
@@ -221,26 +232,33 @@ impl Input {
         mode: ffi::DisplayMode,
         format: ffi::PixelFormat,
         flags: ffi::VideoInputFlags,
-    ) -> Result<(), cxx::Exception> {
-        unsafe { ffi::input_enable_video_output(self.0, mode, format, flags) }
+    ) -> Result<(), DeckLinkError> {
+        unsafe { Ok(ffi::input_enable_video_output(self.0, mode, format, flags)?) }
     }
     pub fn enable_audio_output(
         &mut self,
         sample_rate: u32,
         sample_type: ffi::AudioSampleType,
         channels: u32,
-    ) -> Result<(), cxx::Exception> {
-        unsafe { ffi::input_enable_audio_output(self.0, sample_rate, sample_type, channels) }
+    ) -> Result<(), DeckLinkError> {
+        unsafe {
+            Ok(ffi::input_enable_audio_output(
+                self.0,
+                sample_rate,
+                sample_type,
+                channels,
+            )?)
+        }
     }
-    pub fn start_streams(&mut self) -> Result<(), cxx::Exception> {
-        unsafe { ffi::input_start_streams(self.0) }
+    pub fn start_streams(&mut self) -> Result<(), DeckLinkError> {
+        unsafe { Ok(ffi::input_start_streams(self.0)?) }
     }
-    pub fn stop_streams(&mut self) -> Result<(), cxx::Exception> {
-        unsafe { ffi::input_stop_streams(self.0) }
+    pub fn stop_streams(&mut self) -> Result<(), DeckLinkError> {
+        unsafe { Ok(ffi::input_stop_streams(self.0)?) }
     }
-    pub fn set_callback(&mut self, cb: Box<dyn InputCallback>) -> Result<(), cxx::Exception> {
+    pub fn set_callback(&mut self, cb: Box<dyn InputCallback>) -> Result<(), DeckLinkError> {
         let cb = Box::new(DynInputCallback::new(cb));
-        unsafe { ffi::input_set_callback(self.0, cb) }
+        unsafe { Ok(ffi::input_set_callback(self.0, cb)?) }
     }
 }
 
@@ -250,7 +268,32 @@ impl Drop for Input {
     }
 }
 
+unsafe impl Send for Input {}
+
 pub struct VideoInputFrame(*mut ffi::IDeckLinkVideoInputFrame);
+
+impl VideoInputFrame {
+    pub fn bytes(&self) -> Result<bytes::Bytes, DeckLinkError> {
+        let height = unsafe { ffi::video_input_frame_height(self.0) as usize };
+        let bytes_per_row = unsafe { ffi::video_input_frame_row_bytes(self.0) as usize };
+        let mut data = bytes::BytesMut::zeroed(height * bytes_per_row);
+        unsafe {
+            let frame_ptr = ffi::video_input_frame_bytes(self.0)?;
+            std::ptr::copy(frame_ptr, data.as_mut_ptr(), height * bytes_per_row);
+        }
+        Ok(data.freeze())
+    }
+    pub fn width(&self) -> usize {
+        unsafe { ffi::video_input_frame_width(self.0) as usize }
+    }
+    pub fn height(&self) -> usize {
+        unsafe { ffi::video_input_frame_height(self.0) as usize }
+    }
+    pub fn bytes_per_row(&self) -> usize {
+        unsafe { ffi::video_input_frame_row_bytes(self.0) as usize }
+    }
+}
+
 pub struct AudioInputPacket(*mut ffi::IDeckLinkAudioInputPacket);
 
 pub(crate) struct DynInputCallback(Box<dyn InputCallback + 'static>);

@@ -36,7 +36,7 @@ pub fn test() -> Result<()> {
     input.enable_video_output(mode, PixelFormat::Format8BitYUV, VideoInputFlags::default())?;
     input.enable_audio_output(48_000, AudioSampleType::Sample32bit, 2)?;
     input.set_callback(Box::new(ChannelInputWrapper {}))?;
-    input.stop_streams()?;
+    input.start_streams()?;
 
     return Ok(());
 }
