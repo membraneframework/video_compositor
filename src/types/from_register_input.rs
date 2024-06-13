@@ -164,3 +164,26 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
         })
     }
 }
+
+impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: DeckLink) -> Result<Self, Self::Error> {
+        if !cfg!(feature = "decklink") {
+            return Err(TypeError::new(
+                "This Live Compositor binary was build without DeckLink support. Rebuilt it with \"decklink\" feature enabled.",
+            ));
+        }
+
+        Ok(pipeline::RegisterInputOptions {
+            input_options: input::InputOptions::DeckLink(input::decklink::DeckLinkOptions {
+                device_id: value.device_id,
+                subdevice: value.subdevice,
+            }),
+            queue_options: queue::InputOptions {
+                required: false,
+                offset: None,
+            },
+        })
+    }
+}

@@ -1,5 +1,7 @@
 #include "decklink/decklink_sdk/include/DeckLinkAPI.h"
 #include "decklink/src/enums.rs.h"
+#include <format>
+#include <stdexcept>
 
 REFIID declare_id(DeclarationId id) {
 #define CASE(VALUE)                                                            \
@@ -48,7 +50,11 @@ REFIID declare_id(DeclarationId id) {
     CASE(Discovery)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown DeclarationId: {:#x}", static_cast<int64_t>(id)));
 }
+
+// Profile attribute id
 
 BMDDeckLinkAttributeID flag_attribute_id(FlagAttributeId id) {
 #define CASE(VALUE)                                                            \
@@ -83,6 +89,8 @@ BMDDeckLinkAttributeID flag_attribute_id(FlagAttributeId id) {
     CASE(HasMonitorOut)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown FlagAttributeId: {:#x}", static_cast<int64_t>(id)));
 }
 
 BMDDeckLinkAttributeID integer_attribute_id(IntegerAttributeId id) {
@@ -118,6 +126,8 @@ BMDDeckLinkAttributeID integer_attribute_id(IntegerAttributeId id) {
     CASE(MezzanineType)
   }
 #undef CASE
+  throw std::invalid_argument(std::format("Unknown IntegerAttributeId: {:#x}",
+                                          static_cast<int64_t>(id)));
 }
 
 BMDDeckLinkAttributeID float_attribute_id(FloatAttributeId id) {
@@ -134,6 +144,8 @@ BMDDeckLinkAttributeID float_attribute_id(FloatAttributeId id) {
     CASE(MicrophoneInputGainMaximum)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown FloatAttributeId: {:#x}", static_cast<int64_t>(id)));
 }
 
 BMDDeckLinkAttributeID string_attribute_id(StringAttributeId id) {
@@ -150,6 +162,187 @@ BMDDeckLinkAttributeID string_attribute_id(StringAttributeId id) {
     CASE(EthernetMACAddress)
   }
 #undef CASE
+  throw std::invalid_argument(std::format("Unknown StringAttributeId: {:#x}",
+                                          static_cast<int64_t>(id)));
+}
+
+// Device configuration ID
+
+BMDDeckLinkConfigurationID flag_configuration_id(FlagConfigurationId id) {
+#define CASE(VALUE)                                                            \
+  case FlagConfigurationId::VALUE:                                             \
+    return bmdDeckLink##VALUE;
+
+  switch (id) {
+    /* Serial port Flags */
+    CASE(ConfigSwapSerialRxTx)
+
+    /* Audio Input/Output Flags */
+    CASE(ConfigAnalogAudioConsumerLevels)
+    CASE(ConfigSwapHDMICh3AndCh4OnInput)
+    CASE(ConfigSwapHDMICh3AndCh4OnOutput)
+
+    /* Video Output Flags */
+    CASE(ConfigFieldFlickerRemoval)
+    CASE(ConfigHD1080p24ToHD1080i5994Conversion)
+    CASE(Config444SDIVideoOutput)
+    CASE(ConfigBlackVideoOutputDuringCapture)
+    CASE(ConfigLowLatencyVideoOutput)
+    CASE(ConfigDownConversionOnAllAnalogOutput)
+    CASE(ConfigSMPTELevelAOutput)
+    CASE(ConfigRec2020Output)
+    CASE(ConfigQuadLinkSDIVideoOutputSquareDivisionSplit)
+    CASE(ConfigOutput1080pAsPsF)
+
+    /* Video Input Flags */
+    CASE(ConfigVideoInputScanning)
+    CASE(ConfigUseDedicatedLTCInput)
+    CASE(ConfigSDIInput3DPayloadOverride)
+    CASE(ConfigCapture1080pAsPsF)
+
+    /* Audio Input Flags */
+    CASE(ConfigMicrophonePhantomPower)
+
+    /* Network Flags */
+    CASE(ConfigEthernetUseDHCP)
+    CASE(ConfigEthernetPTPFollowerOnly)
+    CASE(ConfigEthernetPTPUseUDPEncapsulation)
+  }
+#undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown FlagAttributeId: {:#x}", static_cast<int64_t>(id)));
+}
+
+BMDDeckLinkConfigurationID integer_configuration_id(IntegerConfigurationId id) {
+#define CASE(VALUE)                                                            \
+  case IntegerConfigurationId::VALUE:                                          \
+    return bmdDeckLink##VALUE;
+
+  switch (id) {
+    /* Video Input/Output Integers */
+    CASE(ConfigHDMI3DPackingFormat)
+    CASE(ConfigBypass)
+    CASE(ConfigClockTimingAdjustment)
+
+    /* Video Output Integers */
+    CASE(ConfigVideoOutputConnection)
+    CASE(ConfigVideoOutputConversionMode)
+    CASE(ConfigAnalogVideoOutputFlags)
+    CASE(ConfigReferenceInputTimingOffset)
+    CASE(ConfigReferenceOutputMode)
+    CASE(ConfigVideoOutputIdleOperation)
+    CASE(ConfigDefaultVideoOutputMode)
+    CASE(ConfigDefaultVideoOutputModeFlags)
+    CASE(ConfigSDIOutputLinkConfiguration)
+    CASE(ConfigHDMITimecodePacking)
+    CASE(ConfigPlaybackGroup)
+
+    /* Video Input Integers */
+    CASE(ConfigVideoInputConnection)
+    CASE(ConfigAnalogVideoInputFlags)
+    CASE(ConfigVideoInputConversionMode)
+    CASE(Config32PulldownSequenceInitialTimecodeFrame)
+    CASE(ConfigVANCSourceLine1Mapping)
+    CASE(ConfigVANCSourceLine2Mapping)
+    CASE(ConfigVANCSourceLine3Mapping)
+    CASE(ConfigCapturePassThroughMode)
+    CASE(ConfigCaptureGroup)
+
+    /* Keying Integers */
+    CASE(ConfigInternalKeyingAncillaryDataSource)
+
+    /* Audio Input Integers */
+    CASE(ConfigAudioInputConnection)
+
+    /* Audio Output Integers */
+    CASE(ConfigAudioOutputAESAnalogSwitch)
+
+    /* Network Integers */
+    CASE(ConfigEthernetPTPPriority1)
+    CASE(ConfigEthernetPTPPriority2)
+    CASE(ConfigEthernetPTPDomain)
+
+    /* Deck Control Integers */
+    CASE(ConfigDeckControlConnection)
+  }
+#undef CASE
+  throw std::invalid_argument(std::format(
+      "Unknown IntegerConfigurationId: {:#x}", static_cast<int64_t>(id)));
+}
+
+BMDDeckLinkConfigurationID float_configuration_id(FloatConfigurationId id) {
+#define CASE(VALUE)                                                            \
+  case FloatConfigurationId::VALUE:                                            \
+    return bmdDeckLink##VALUE;
+
+  switch (id) {
+    /* Video Output Floats */
+    CASE(ConfigVideoOutputComponentLumaGain)
+    CASE(ConfigVideoOutputComponentChromaBlueGain)
+    CASE(ConfigVideoOutputComponentChromaRedGain)
+    CASE(ConfigVideoOutputCompositeLumaGain)
+    CASE(ConfigVideoOutputCompositeChromaGain)
+    CASE(ConfigVideoOutputSVideoLumaGain)
+    CASE(ConfigVideoOutputSVideoChromaGain)
+
+    /* Video Input Floats */
+    CASE(ConfigVideoInputComponentLumaGain)
+    CASE(ConfigVideoInputComponentChromaBlueGain)
+    CASE(ConfigVideoInputComponentChromaRedGain)
+    CASE(ConfigVideoInputCompositeLumaGain)
+    CASE(ConfigVideoInputCompositeChromaGain)
+    CASE(ConfigVideoInputSVideoLumaGain)
+    CASE(ConfigVideoInputSVideoChromaGain)
+
+    /* Audio Input Floats */
+    CASE(ConfigAnalogAudioInputScaleChannel1)
+    CASE(ConfigAnalogAudioInputScaleChannel2)
+    CASE(ConfigAnalogAudioInputScaleChannel3)
+    CASE(ConfigAnalogAudioInputScaleChannel4)
+    CASE(ConfigDigitalAudioInputScale)
+    CASE(ConfigMicrophoneInputGain)
+
+    /* Audio Output Floats */
+    CASE(ConfigAnalogAudioOutputScaleChannel1)
+    CASE(ConfigAnalogAudioOutputScaleChannel2)
+    CASE(ConfigAnalogAudioOutputScaleChannel3)
+    CASE(ConfigAnalogAudioOutputScaleChannel4)
+    CASE(ConfigDigitalAudioOutputScale)
+    CASE(ConfigHeadphoneVolume)
+  }
+#undef CASE
+  throw std::invalid_argument(std::format("Unknown FloatConfigurationId: {:#x}",
+                                          static_cast<int64_t>(id)));
+}
+
+BMDDeckLinkConfigurationID string_configuration_id(StringConfigurationId id) {
+#define CASE(VALUE)                                                            \
+  case StringConfigurationId::VALUE:                                           \
+    return bmdDeckLink##VALUE;
+
+  switch (id) {
+    /* Network Strings */
+    CASE(ConfigEthernetStaticLocalIPAddress)
+    CASE(ConfigEthernetStaticSubnetMask)
+    CASE(ConfigEthernetStaticGatewayIPAddress)
+    CASE(ConfigEthernetStaticPrimaryDNS)
+    CASE(ConfigEthernetStaticSecondaryDNS)
+    CASE(ConfigEthernetVideoOutputAddress)
+    CASE(ConfigEthernetAudioOutputAddress)
+    CASE(ConfigEthernetAncillaryOutputAddress)
+    CASE(ConfigEthernetAudioOutputChannelOrder)
+
+    /* Device Information Strings */
+    CASE(ConfigDeviceInformationLabel)
+    CASE(ConfigDeviceInformationSerialNumber)
+    CASE(ConfigDeviceInformationCompany)
+    CASE(ConfigDeviceInformationPhone)
+    CASE(ConfigDeviceInformationEmail)
+    CASE(ConfigDeviceInformationDate)
+  }
+#undef CASE
+  throw std::invalid_argument(std::format(
+      "Unknown StringConfigurationId: {:#x}", static_cast<int64_t>(id)));
 }
 
 BMDVideoConnection from_video_connection(VideoConnection conn) {
@@ -169,6 +362,8 @@ BMDVideoConnection from_video_connection(VideoConnection conn) {
     CASE(OpticalEthernet)
   }
 #undef CASE
+  throw std::invalid_argument(std::format("Unknown VideoConnection: {:#x}",
+                                          static_cast<int64_t>(conn)));
 }
 
 VideoConnection into_video_connection(BMDVideoConnection conn) {
@@ -188,6 +383,8 @@ VideoConnection into_video_connection(BMDVideoConnection conn) {
     CASE(OpticalEthernet)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown BMDVideoConnection: {:#x}", conn));
 }
 
 BMDAudioConnection from_audio_connection(AudioConnection conn) {
@@ -205,6 +402,8 @@ BMDAudioConnection from_audio_connection(AudioConnection conn) {
     CASE(Headphones)
   }
 #undef CASE
+  throw std::invalid_argument(std::format("Unknown AudioConnection: {:#x}",
+                                          static_cast<int64_t>(conn)));
 }
 
 AudioConnection into_audio_connection(BMDAudioConnection conn) {
@@ -222,11 +421,13 @@ AudioConnection into_audio_connection(BMDAudioConnection conn) {
     CASE(Headphones)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown BMDAudioConnection: {:#x}", conn));
 }
 
-BMDDisplayMode from_display_mode(DisplayMode mode) {
+BMDDisplayMode from_display_mode_type(DisplayModeType mode) {
 #define CASE(VALUE)                                                            \
-  case DisplayMode::VALUE:                                                     \
+  case DisplayModeType::VALUE:                                                 \
     return bmd##VALUE;
 
   switch (mode) {
@@ -364,12 +565,14 @@ BMDDisplayMode from_display_mode(DisplayMode mode) {
     CASE(ModeUnknown)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown DisplayMode: {:#x}", static_cast<int64_t>(mode)));
 }
 
-DisplayMode into_display_mode(BMDDisplayMode mode) {
+DisplayModeType into_display_mode_type(BMDDisplayMode mode) {
 #define CASE(VALUE)                                                            \
   case bmd##VALUE:                                                             \
-    return DisplayMode::VALUE;
+    return DisplayModeType::VALUE;
 
   switch (mode) {
     /* SD Modes */
@@ -506,6 +709,8 @@ DisplayMode into_display_mode(BMDDisplayMode mode) {
     CASE(ModeUnknown)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown BMDDisplayMode: {:#x}", mode));
 }
 
 BMDPixelFormat from_pixel_format(PixelFormat format) {
@@ -529,6 +734,8 @@ BMDPixelFormat from_pixel_format(PixelFormat format) {
     CASE(FormatDNxHR)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown PixelFormat: {:#x}", static_cast<int64_t>(format)));
 }
 PixelFormat into_pixel_format(BMDPixelFormat format) {
 #define CASE(VALUE)                                                            \
@@ -551,6 +758,8 @@ PixelFormat into_pixel_format(BMDPixelFormat format) {
     CASE(FormatDNxHR)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown BMDPixelFormat: {:#x}", format));
 }
 
 BMDVideoInputConversionMode
@@ -569,6 +778,8 @@ from_video_input_conversion_mode(VideoInputConversionMode mode) {
     CASE(VideoInputAnamorphicUpconversion)
   }
 #undef CASE
+  throw std::invalid_argument(std::format(
+      "Unknown VideoInputConversionMode: {:#x}", static_cast<int64_t>(mode)));
 }
 
 VideoInputConversionMode
@@ -587,6 +798,8 @@ into_video_input_conversion_mode(BMDVideoInputConversionMode mode) {
     CASE(VideoInputAnamorphicUpconversion)
   }
 #undef CASE
+  throw std::invalid_argument(
+      std::format("Unknown BMDVideoInputConversionMode: {:#x}", mode));
 }
 
 BMDSupportedVideoModeFlags
@@ -656,5 +869,67 @@ VideoInputFlags into_video_input_flags(BMDVideoInputFlags bmd_flags) {
   flags.dual_stream_3d = (bmd_flags & bmdVideoInputDualStream3D) != 0;
   flags.synchronize_to_capture_group =
       (bmd_flags & bmdVideoInputSynchronizeToCaptureGroup) != 0;
+  return flags;
+}
+
+BMDDetectedVideoInputFormatFlags
+from_detected_video_input_format_flags(DetectedVideoInputFormatFlags flags) {
+  BMDDetectedVideoInputFormatFlags bmd_flags = 0;
+  if (flags.format_y_cb_cr_422) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInputYCbCr422;
+  }
+  if (flags.format_rgb_444) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInputRGB444;
+  }
+  if (flags.dual_stream_3d) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInputDualStream3D;
+  }
+  if (flags.bit_depth_12) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInput12BitDepth;
+  }
+  if (flags.bit_depth_10) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInput10BitDepth;
+  }
+  if (flags.bit_depth_8) {
+    bmd_flags = bmd_flags | bmdDetectedVideoInput8BitDepth;
+  }
+  return bmd_flags;
+}
+
+DetectedVideoInputFormatFlags into_detected_video_input_format_flags(
+    BMDDetectedVideoInputFormatFlags bmd_flags) {
+  DetectedVideoInputFormatFlags flags;
+  flags.format_y_cb_cr_422 = (bmd_flags & bmdDetectedVideoInputYCbCr422) != 0;
+  flags.format_rgb_444 = (bmd_flags & bmdDetectedVideoInputRGB444) != 0;
+  flags.dual_stream_3d = (bmd_flags & bmdDetectedVideoInputDualStream3D) != 0;
+  flags.bit_depth_12 = (bmd_flags & bmdDetectedVideoInput12BitDepth) != 0;
+  flags.bit_depth_10 = (bmd_flags & bmdDetectedVideoInput10BitDepth) != 0;
+  flags.bit_depth_8 = (bmd_flags & bmdDetectedVideoInput8BitDepth) != 0;
+  return flags;
+}
+
+BMDVideoInputFormatChangedEvents
+from_video_input_format_changed_events(VideoInputFormatChangedEvents flags) {
+  BMDVideoInputFormatChangedEvents bmd_flags = 0;
+  if (flags.display_mode_changed) {
+    bmd_flags = bmd_flags | bmdVideoInputDisplayModeChanged;
+  }
+  if (flags.field_dominance_changed) {
+    bmd_flags = bmd_flags | bmdVideoInputFieldDominanceChanged;
+  }
+  if (flags.colorspace_changed) {
+    bmd_flags = bmd_flags | bmdVideoInputColorspaceChanged;
+  }
+  return bmd_flags;
+}
+
+VideoInputFormatChangedEvents into_video_input_format_changed_events(
+    BMDVideoInputFormatChangedEvents bmd_flags) {
+  VideoInputFormatChangedEvents flags;
+  flags.display_mode_changed =
+      (bmd_flags & bmdVideoInputDisplayModeChanged) != 0;
+  flags.field_dominance_changed =
+      (bmd_flags & bmdVideoInputFieldDominanceChanged) != 0;
+  flags.colorspace_changed = (bmd_flags & bmdVideoInputColorspaceChanged) != 0;
   return flags;
 }

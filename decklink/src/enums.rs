@@ -124,6 +124,151 @@ pub mod ffi {
     }
 
     #[derive(Debug, Copy, Clone)]
+    pub enum FlagConfigurationId {
+        /* Serial port Flags */
+        ConfigSwapSerialRxTx,
+
+        /* Audio Input/Output Flags */
+        ConfigAnalogAudioConsumerLevels,
+        ConfigSwapHDMICh3AndCh4OnInput,
+        ConfigSwapHDMICh3AndCh4OnOutput,
+
+        /* Video Output Flags */
+        ConfigFieldFlickerRemoval,
+        ConfigHD1080p24ToHD1080i5994Conversion,
+        Config444SDIVideoOutput,
+        ConfigBlackVideoOutputDuringCapture,
+        ConfigLowLatencyVideoOutput,
+        ConfigDownConversionOnAllAnalogOutput,
+        ConfigSMPTELevelAOutput,
+        ConfigRec2020Output,
+        ConfigQuadLinkSDIVideoOutputSquareDivisionSplit,
+        ConfigOutput1080pAsPsF,
+
+        /* Video Input Flags */
+        ConfigVideoInputScanning,
+        ConfigUseDedicatedLTCInput,
+        ConfigSDIInput3DPayloadOverride,
+        ConfigCapture1080pAsPsF,
+
+        /* Audio Input Flags */
+        ConfigMicrophonePhantomPower,
+
+        /* Network Flags */
+        ConfigEthernetUseDHCP,
+        ConfigEthernetPTPFollowerOnly,
+        ConfigEthernetPTPUseUDPEncapsulation,
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    pub enum IntegerConfigurationId {
+        /* Video Input/Output Integers */
+        ConfigHDMI3DPackingFormat,
+        ConfigBypass,
+        ConfigClockTimingAdjustment,
+
+        /* Video Output Integers */
+        ConfigVideoOutputConnection,
+        ConfigVideoOutputConversionMode,
+        ConfigAnalogVideoOutputFlags,
+        ConfigReferenceInputTimingOffset,
+        ConfigReferenceOutputMode,
+        ConfigVideoOutputIdleOperation,
+        ConfigDefaultVideoOutputMode,
+        ConfigDefaultVideoOutputModeFlags,
+        ConfigSDIOutputLinkConfiguration,
+        ConfigHDMITimecodePacking,
+        ConfigPlaybackGroup,
+
+        /* Video Input Integers */
+        ConfigVideoInputConnection,
+        ConfigAnalogVideoInputFlags,
+        ConfigVideoInputConversionMode,
+        Config32PulldownSequenceInitialTimecodeFrame,
+        ConfigVANCSourceLine1Mapping,
+        ConfigVANCSourceLine2Mapping,
+        ConfigVANCSourceLine3Mapping,
+        ConfigCapturePassThroughMode,
+        ConfigCaptureGroup,
+
+        /* Keying Integers */
+        ConfigInternalKeyingAncillaryDataSource,
+
+        /* Audio Input Integers */
+        ConfigAudioInputConnection,
+
+        /* Audio Output Integers */
+        ConfigAudioOutputAESAnalogSwitch,
+
+        /* Network Integers */
+        ConfigEthernetPTPPriority1,
+        ConfigEthernetPTPPriority2,
+        ConfigEthernetPTPDomain,
+
+        /* Deck Control Integers */
+        ConfigDeckControlConnection,
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    pub enum FloatConfigurationId {
+        /* Video Output Floats */
+        ConfigVideoOutputComponentLumaGain,
+        ConfigVideoOutputComponentChromaBlueGain,
+        ConfigVideoOutputComponentChromaRedGain,
+        ConfigVideoOutputCompositeLumaGain,
+        ConfigVideoOutputCompositeChromaGain,
+        ConfigVideoOutputSVideoLumaGain,
+        ConfigVideoOutputSVideoChromaGain,
+
+        /* Video Input Floats */
+        ConfigVideoInputComponentLumaGain,
+        ConfigVideoInputComponentChromaBlueGain,
+        ConfigVideoInputComponentChromaRedGain,
+        ConfigVideoInputCompositeLumaGain,
+        ConfigVideoInputCompositeChromaGain,
+        ConfigVideoInputSVideoLumaGain,
+        ConfigVideoInputSVideoChromaGain,
+
+        /* Audio Input Floats */
+        ConfigAnalogAudioInputScaleChannel1,
+        ConfigAnalogAudioInputScaleChannel2,
+        ConfigAnalogAudioInputScaleChannel3,
+        ConfigAnalogAudioInputScaleChannel4,
+        ConfigDigitalAudioInputScale,
+        ConfigMicrophoneInputGain,
+
+        /* Audio Output Floats */
+        ConfigAnalogAudioOutputScaleChannel1,
+        ConfigAnalogAudioOutputScaleChannel2,
+        ConfigAnalogAudioOutputScaleChannel3,
+        ConfigAnalogAudioOutputScaleChannel4,
+        ConfigDigitalAudioOutputScale,
+        ConfigHeadphoneVolume,
+    }
+
+    #[derive(Debug, Copy, Clone)]
+    pub enum StringConfigurationId {
+        /* Network Strings */
+        ConfigEthernetStaticLocalIPAddress,
+        ConfigEthernetStaticSubnetMask,
+        ConfigEthernetStaticGatewayIPAddress,
+        ConfigEthernetStaticPrimaryDNS,
+        ConfigEthernetStaticSecondaryDNS,
+        ConfigEthernetVideoOutputAddress,
+        ConfigEthernetAudioOutputAddress,
+        ConfigEthernetAncillaryOutputAddress,
+        ConfigEthernetAudioOutputChannelOrder,
+
+        /* Device Information Strings */
+        ConfigDeviceInformationLabel,
+        ConfigDeviceInformationSerialNumber,
+        ConfigDeviceInformationCompany,
+        ConfigDeviceInformationPhone,
+        ConfigDeviceInformationEmail,
+        ConfigDeviceInformationDate,
+    }
+
+    #[derive(Debug, Copy, Clone)]
     pub enum VideoConnection {
         Unspecified,
         SDI,
@@ -148,7 +293,7 @@ pub mod ffi {
     }
 
     #[derive(Debug, Copy, Clone)]
-    pub enum DisplayMode {
+    pub enum DisplayModeType {
         /* SD Modes */
         ModeNTSC,
         ModeNTSC2398, // 3:2 pulldown
@@ -335,5 +480,22 @@ pub mod ffi {
     pub enum AudioSampleType {
         Sample16bit = 16,
         Sample32bit = 32,
+    }
+
+    #[derive(Debug, Copy, Clone, Default)]
+    pub struct DetectedVideoInputFormatFlags {
+        pub format_y_cb_cr_422: bool,
+        pub format_rgb_444: bool,
+        pub dual_stream_3d: bool,
+        pub bit_depth_12: bool,
+        pub bit_depth_10: bool,
+        pub bit_depth_8: bool,
+    }
+
+    #[derive(Debug, Copy, Clone, Default)]
+    pub struct VideoInputFormatChangedEvents {
+        pub display_mode_changed: bool,
+        pub field_dominance_changed: bool,
+        pub colorspace_changed: bool,
     }
 }

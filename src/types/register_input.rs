@@ -44,6 +44,18 @@ pub struct Mp4 {
     pub offset_ms: Option<f64>,
 }
 
+/// Capture streams from devices connected to Blackmagic DeckLink card.
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DeckLink {
+    /// Single DeckLink device can consist of multiple sub-devices. This field defines
+    /// index of sub-device that should be used
+    pub subdevice: Option<u32>,
+
+    /// Device id
+    pub device_id: Option<u32>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum AacRtpMode {

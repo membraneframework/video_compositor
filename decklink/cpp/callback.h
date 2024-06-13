@@ -9,7 +9,7 @@ private:
 public:
   InputCallbackWrapper(rust::Box<DynInputCallback> cb) : cb(std::move(cb)){};
 
-  virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, LPVOID *ppv) {
+  virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID, LPVOID *) {
     return E_NOINTERFACE;
   }
 

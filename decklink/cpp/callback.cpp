@@ -1,5 +1,6 @@
 #include "callback.h"
 #include "api.h"
+#include "enums.h"
 
 ULONG InputCallbackWrapper::AddRef(void) {
   return __sync_add_and_fetch(&refcount, 1);
@@ -24,5 +25,8 @@ HRESULT InputCallbackWrapper::VideoInputFrameArrived(
 HRESULT InputCallbackWrapper::VideoInputFormatChanged(
     BMDVideoInputFormatChangedEvents events, IDeckLinkDisplayMode *display_mode,
     BMDDetectedVideoInputFormatFlags flags) {
-  return 0;
+  auto result = this->cb->video_input_format_changed(
+      into_video_input_format_changed_events(events), display_mode,
+      into_detected_video_input_format_flags(flags));
+  return static_cast<HRESULT>(result);
 }
