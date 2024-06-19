@@ -9,25 +9,30 @@ use crate::{
 
 #[derive(Debug)]
 pub struct DeckLinkInfo {
+    pub current_profile: ProfileAttributesInfo,
     pub profiles: Vec<ProfileInfo>,
     pub configuration: ConfigurationInfo,
 }
 
 impl DeckLink {
     pub fn info(&self) -> Result<DeckLinkInfo, DeckLinkError> {
-        let profile_manager = self.profile_manager()?;
-        let profiles = profile_manager
-            .profiles()?
-            .into_iter()
-            .map(|profile| -> Result<ProfileInfo, DeckLinkError> {
-                Ok(ProfileInfo {
-                    is_active: profile.is_active()?,
-                    attributes: profile.attributes()?.info()?,
+        let profiles = match self.profile_manager()? {
+            Some(manager) => manager
+                .profiles()?
+                .into_iter()
+                .map(|profile| -> Result<ProfileInfo, DeckLinkError> {
+                    Ok(ProfileInfo {
+                        is_active: profile.is_active()?,
+                        attributes: profile.attributes()?.info()?,
+                    })
                 })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Result<Vec<_>, _>>()?,
+            None => vec![],
+        };
+        let current_profile = self.profile_attributes()?.info()?;
         let configuration = self.configuration()?.info()?;
         Ok(DeckLinkInfo {
+            current_profile,
             profiles,
             configuration,
         })
@@ -99,8 +104,6 @@ pub struct ConfigurationInfo {}
 
 impl DeckLinkConfiguration {
     pub fn info(&self) -> Result<ConfigurationInfo, DeckLinkError> {
-        Ok(ConfigurationInfo {
-
-        })
+        Ok(ConfigurationInfo {})
     }
 }

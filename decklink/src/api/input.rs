@@ -27,7 +27,7 @@ impl Input {
         }
     }
     pub fn enable_video(
-        &mut self,
+        &self,
         mode: ffi::DisplayModeType,
         format: ffi::PixelFormat,
         flags: ffi::VideoInputFlags,
@@ -35,7 +35,7 @@ impl Input {
         unsafe { Ok(ffi::input_enable_video(self.0, mode, format, flags)?) }
     }
     pub fn enable_audio(
-        &mut self,
+        &self,
         sample_rate: u32,
         sample_type: ffi::AudioSampleType,
         channels: u32,
@@ -49,13 +49,19 @@ impl Input {
             )?)
         }
     }
-    pub fn start_streams(&mut self) -> Result<(), DeckLinkError> {
+    pub fn start_streams(&self) -> Result<(), DeckLinkError> {
         unsafe { Ok(ffi::input_start_streams(self.0)?) }
     }
-    pub fn stop_streams(&mut self) -> Result<(), DeckLinkError> {
+    pub fn stop_streams(&self) -> Result<(), DeckLinkError> {
         unsafe { Ok(ffi::input_stop_streams(self.0)?) }
     }
-    pub fn set_callback(&mut self, cb: Box<dyn InputCallback>) -> Result<(), DeckLinkError> {
+    pub fn pause_streams(&self) -> Result<(), DeckLinkError> {
+        unsafe { Ok(ffi::input_pause_streams(self.0)?) }
+    }
+    pub fn flush_streams(&self) -> Result<(), DeckLinkError> {
+        unsafe { Ok(ffi::input_flush_streams(self.0)?) }
+    }
+    pub fn set_callback(&self, cb: Box<dyn InputCallback>) -> Result<(), DeckLinkError> {
         let cb = Box::new(DynInputCallback::new(cb));
         unsafe { Ok(ffi::input_set_callback(self.0, cb)?) }
     }
@@ -68,6 +74,7 @@ impl Drop for Input {
 }
 
 unsafe impl Send for Input {}
+unsafe impl Sync for Input {}
 
 pub struct VideoInputFrame(*mut ffi::IDeckLinkVideoInputFrame);
 
@@ -189,9 +196,9 @@ impl DynInputCallback {
         display_mode: *mut ffi::IDeckLinkDisplayMode,
         flags: ffi::DetectedVideoInputFormatFlags,
     ) -> ffi::HResult {
-        let result = self
-            .0
-            .video_input_format_changed(events, DisplayMode(display_mode), flags);
+        let result =
+            self.0
+                .video_input_format_changed(events, DisplayMode(display_mode, false), flags);
 
         match result {
             InputCallbackResult::Ok => ffi::HResult::Ok,

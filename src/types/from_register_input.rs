@@ -177,8 +177,8 @@ impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
 
         Ok(pipeline::RegisterInputOptions {
             input_options: input::InputOptions::DeckLink(input::decklink::DeckLinkOptions {
-                device_id: value.device_id,
-                subdevice: value.subdevice,
+                subdevice_index: value.subdevice_index,
+                enable_audio: false,
             }),
             queue_options: queue::InputOptions {
                 required: false,

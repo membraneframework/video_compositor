@@ -9,13 +9,28 @@ impl ProfileAttributes {
         unsafe { Ok(ffi::profile_attributes_flag(self.0, id)?) }
     }
     pub fn get_integer(&self, id: ffi::IntegerAttributeId) -> Result<i64, DeckLinkError> {
-        unsafe { Ok(ffi::profile_attributes_integer(self.0, id)?) }
+        unsafe {
+            let attr = ffi::profile_attributes_integer(self.0, id).map_err(|err| {
+                DeckLinkError::ProfileAttributeAccessError(format!("{:?}", id), err)
+            })?;
+            Ok(attr)
+        }
     }
     pub fn get_float(&self, id: ffi::FloatAttributeId) -> Result<f64, DeckLinkError> {
-        unsafe { Ok(ffi::profile_attributes_float(self.0, id)?) }
+        unsafe {
+            let attr = ffi::profile_attributes_float(self.0, id).map_err(|err| {
+                DeckLinkError::ProfileAttributeAccessError(format!("{:?}", id), err)
+            })?;
+            Ok(attr)
+        }
     }
     pub fn get_string(&self, id: ffi::StringAttributeId) -> Result<String, DeckLinkError> {
-        unsafe { Ok(ffi::profile_attributes_string(self.0, id)?) }
+        unsafe {
+            let attr = ffi::profile_attributes_string(self.0, id).map_err(|err| {
+                DeckLinkError::ProfileAttributeAccessError(format!("{:?}", id), err)
+            })?;
+            Ok(attr)
+        }
     }
 }
 

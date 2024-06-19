@@ -50,6 +50,8 @@ pub fn find_decklink_with_capture_support() -> Result<Option<DeckLink>, DeckLink
 pub enum DeckLinkError {
     #[error("Unknown error: {0:#}")]
     UnknownError(#[from] cxx::Exception),
+    #[error("Failed to access profile attribute {0}")]
+    ProfileAttributeAccessError(String, #[source] cxx::Exception)
 }
 
 impl From<i64> for VideoIOSupport {

@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use compositor_render::InputId;
 use tracing::{error, span, Level};
 
-use self::{capture::ChannelCallbackAdapter, connect_device::init_decklink};
+use self::{capture::ChannelCallbackAdapter, connect_device::find_decklink};
 
 use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInputReceiver};
 
@@ -19,12 +21,12 @@ pub enum DeckLinkError {
 }
 
 pub struct DeckLinkOptions {
-    pub device_id: Option<u32>,
-    pub subdevice: Option<u32>,
+    pub subdevice_index: Option<u32>,
+    pub enable_audio: bool,
 }
 
 pub struct DeckLink {
-    input: decklink::Input,
+    input: Arc<decklink::Input>,
 }
 
 impl DeckLink {
@@ -32,14 +34,29 @@ impl DeckLink {
         input_id: &InputId,
         opts: DeckLinkOptions,
     ) -> Result<InputInitResult, DeckLinkError> {
-        let mut input = init_decklink(opts)?;
-
         let span = span!(
             Level::INFO,
             "DeckLink input",
             input_id = input_id.to_string()
         );
-        let (callback, video_receiver, audio_receiver) = ChannelCallbackAdapter::new(span);
+        let input = Arc::new(find_decklink(&opts)?.input()?);
+
+        // Initial options, real config should be set based on detected format
+        input.enable_video(
+            decklink::DisplayModeType::ModeHD720p50,
+            decklink::PixelFormat::Format8BitYUV,
+            decklink::VideoInputFlags {
+                enable_format_detection: true,
+                ..Default::default()
+            },
+        )?;
+        input.enable_audio(AUDIO_SAMPLE_RATE, decklink::AudioSampleType::Sample32bit, 2)?;
+
+        let (callback, video_receiver, audio_receiver) = ChannelCallbackAdapter::new(
+            span,
+            opts.enable_audio,
+            Arc::<decklink::Input>::downgrade(&input),
+        );
         input.set_callback(Box::new(callback))?;
         input.start_streams()?;
 
