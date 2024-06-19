@@ -47,7 +47,7 @@ fn start_example_client_code() -> Result<()> {
         }),
     )?;
 
-    std::thread::sleep(Duration::from_millis(10000));
+    std::thread::sleep(Duration::from_millis(2000));
 
     info!("[example] Send register output video request.");
     common::post(

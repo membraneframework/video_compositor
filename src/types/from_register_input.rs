@@ -181,7 +181,7 @@ impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
                 enable_audio: false,
             }),
             queue_options: queue::InputOptions {
-                required: false,
+                required: true,
                 offset: None,
             },
         })
