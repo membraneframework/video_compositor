@@ -7,6 +7,7 @@
 #include "decklink/src/api.rs.h"
 #include "decklink/src/enums.rs.h"
 #include <cstdint>
+#include <format>
 #include <stdexcept>
 
 rust::Vec<IDeckLinkPtr> get_decklinks() {
@@ -67,6 +68,9 @@ IDeckLinkProfileManager *decklink_profile_manager(IDeckLink *decklink) {
 
   HRESULT result =
       decklink->QueryInterface(IID_IDeckLinkProfileManager, (void **)&manager);
+  if (result == E_NOINTERFACE) {
+    return nullptr;
+  }
   if (result != S_OK) {
     throw std::runtime_error(
         "IDeckLink::QueryInterface IID_IDeckLinkProfileManager failed.");
@@ -104,8 +108,14 @@ bool profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
 int64_t profile_attributes_integer(IDeckLinkProfileAttributes *attrs,
                                    IntegerAttributeId id) {
   int64_t value;
-  if (attrs->GetInt(integer_attribute_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkProfileAttributes::GetInt failed.");
+  auto result = attrs->GetInt(integer_attribute_id(id), &value);
+  if (result == E_INVALIDARG) {
+    return 0;
+  }
+  if (result != S_OK) {
+    throw std::runtime_error(
+        std::format("IDeckLinkProfileAttributes::GetInt failed. {:#x}",
+                    static_cast<unsigned int>(result)));
   }
   return value;
 }
@@ -122,8 +132,14 @@ double profile_attributes_float(IDeckLinkProfileAttributes *attrs,
 rust::String profile_attributes_string(IDeckLinkProfileAttributes *attrs,
                                        StringAttributeId id) {
   const char *value;
-  if (attrs->GetString(string_attribute_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkProfileAttributes::GetString failed.");
+  auto result = attrs->GetString(string_attribute_id(id), &value);
+  if (result == E_INVALIDARG || result == E_NOTIMPL) {
+    return rust::String("");
+  }
+  if (result != S_OK) {
+    throw std::runtime_error(
+        std::format("IDeckLinkProfileAttributes::GetString failed. {:#x}",
+                    static_cast<unsigned int>(result)));
   }
   return rust::String(value);
 }
@@ -142,7 +158,7 @@ input_supports_video_mode(IDeckLinkInput *input, VideoConnection conn,
                           VideoInputConversionMode conversion_mode,
                           SupportedVideoModeFlags supported_mode_flags) {
   BMDDisplayMode actual_mode;
-  bool supported; // TODO
+  bool supported;
   auto result = input->DoesSupportVideoMode(
       from_video_connection(conn), from_display_mode_type(mode),
       from_pixel_format(pixel_format),
@@ -150,7 +166,14 @@ input_supports_video_mode(IDeckLinkInput *input, VideoConnection conn,
       from_supported_video_mode_flags(supported_mode_flags), &actual_mode,
       &supported);
   if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::DoesSupportVideoMode failed.");
+    throw std::runtime_error(
+        std::format("IDeckLinkInput::DoesSupportVideoMode failed. ({:#x})",
+                    static_cast<unsigned int>(result)));
+  }
+  if (!supported) {
+    throw std::runtime_error(
+        "IDeckLinkInput::DoesSupportVideoMode: Device does not "
+        "support selected params");
   }
   return into_display_mode_type(actual_mode);
 }
@@ -194,6 +217,20 @@ void input_stop_streams(IDeckLinkInput *input) {
   auto result = input->StopStreams();
   if (result != S_OK) {
     throw std::runtime_error("IDeckLinkInput::StopStreams failed.");
+  }
+}
+
+void input_pause_streams(IDeckLinkInput *input) {
+  auto result = input->PauseStreams();
+  if (result != S_OK) {
+    throw std::runtime_error("IDeckLinkInput::PauseStreams failed.");
+  }
+}
+
+void input_flush_streams(IDeckLinkInput *input) {
+  auto result = input->FlushStreams();
+  if (result != S_OK) {
+    throw std::runtime_error("IDeckLinkInput::FlushStreams failed.");
   }
 }
 

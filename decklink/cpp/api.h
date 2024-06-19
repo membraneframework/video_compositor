@@ -39,6 +39,8 @@ void input_enable_audio(IDeckLinkInput *input, uint32_t sample_rate,
 void input_set_callback(IDeckLinkInput *input, rust::Box<DynInputCallback> cb);
 void input_start_streams(IDeckLinkInput *input);
 void input_stop_streams(IDeckLinkInput *input);
+void input_pause_streams(IDeckLinkInput *input);
+void input_flush_streams(IDeckLinkInput *input);
 void input_release(IDeckLinkInput *input) noexcept;
 
 // IDeckLinkProfileManager

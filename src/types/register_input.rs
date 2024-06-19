@@ -50,10 +50,7 @@ pub struct Mp4 {
 pub struct DeckLink {
     /// Single DeckLink device can consist of multiple sub-devices. This field defines
     /// index of sub-device that should be used
-    pub subdevice: Option<u32>,
-
-    /// Device id
-    pub device_id: Option<u32>,
+    pub subdevice_index: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, JsonSchema)]

@@ -1,14 +1,17 @@
-use std::sync::Arc;
+use std::{
+    sync::{Arc, Mutex, OnceLock, Weak},
+    time::{Duration, Instant},
+};
 
 use bytes::{BufMut, BytesMut};
-use compositor_render::{Frame, Resolution, YuvData, YuvVariant};
+use compositor_render::{error::ErrorStack, Frame, Resolution, YuvData, YuvVariant};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use decklink::{
     AudioInputPacket, DetectedVideoInputFormatFlags, DisplayMode, InputCallback,
-    InputCallbackResult, VideoInputFormatChangedEvents, VideoInputFrame,
+    InputCallbackResult, PixelFormat, VideoInputFlags, VideoInputFormatChangedEvents,
+    VideoInputFrame,
 };
-use log::{debug, warn};
-use tracing::Span;
+use tracing::{debug, warn, Span};
 
 use crate::{
     pipeline::structs::{DecodedSamples, Samples},
@@ -21,39 +24,59 @@ pub(super) struct ChannelCallbackAdapter {
     video_sender: Option<Sender<PipelineEvent<Frame>>>,
     audio_sender: Option<Sender<PipelineEvent<DecodedSamples>>>,
     span: Span,
+    input: Weak<decklink::Input>,
+    start_time: OnceLock<Instant>,
+    offset: Mutex<Duration>,
 }
 
 impl ChannelCallbackAdapter {
     pub(super) fn new(
         span: Span,
+        enable_audio: bool,
+        input: Weak<decklink::Input>,
     ) -> (
         Self,
         Option<Receiver<PipelineEvent<Frame>>>,
         Option<Receiver<PipelineEvent<DecodedSamples>>>,
     ) {
         let (video_sender, video_receiver) = bounded(1000);
-        let (audio_sender, audio_receiver) = bounded(1000);
+        let (audio_sender, audio_receiver) = match enable_audio {
+            true => {
+                let (sender, receiver) = bounded(1000);
+                (Some(sender), Some(receiver))
+            }
+            false => (None, None),
+        };
         (
             Self {
                 video_sender: Some(video_sender),
-                audio_sender: Some(audio_sender),
+                audio_sender,
                 span,
+                input,
+                start_time: OnceLock::new(),
+                offset: Mutex::new(Duration::ZERO),
             },
             Some(video_receiver),
-            Some(audio_receiver),
+            audio_receiver,
         )
+    }
+
+    fn start_time(&self) -> Instant {
+        *self.start_time.get_or_init(|| Instant::now())
     }
 
     fn handle_video_frame(
         &self,
         video_frame: &mut VideoInputFrame,
         sender: &Sender<PipelineEvent<Frame>>,
-    ) {
+    ) -> Result<(), decklink::DeckLinkError> {
+        let offset = *self.offset.lock().unwrap();
+        let pts = video_frame.stream_time()? + offset;
+
         let width = video_frame.width();
         let height = video_frame.height();
-        let bytes = video_frame.bytes().unwrap();
+        let bytes = video_frame.bytes()?;
         let bytes_per_row = video_frame.bytes_per_row();
-        let pts = video_frame.stream_time().unwrap();
 
         let mut y_plane = BytesMut::with_capacity(width * height);
         let mut u_plane = BytesMut::with_capacity((width / 2) * (height / 2));
@@ -66,8 +89,8 @@ impl ChannelCallbackAdapter {
                     y_plane.put_u8(pixel[1]);
                 }
             }
-            if row_index % 2 == 0 && row_index * 2 < height {
-                for (index, pixel) in row.chunks(2).enumerate() {
+            if row_index % 2 == 0 && row_index < height {
+                for (index, pixel) in row.chunks(4).enumerate() {
                     if index * 2 < width && pixel.len() >= 4 {
                         u_plane.put_u8(pixel[0]);
                         v_plane.put_u8(pixel[2]);
@@ -75,6 +98,7 @@ impl ChannelCallbackAdapter {
                 }
             }
         }
+
         let frame = Frame {
             data: YuvData {
                 variant: YuvVariant::YUV420P,
@@ -85,18 +109,23 @@ impl ChannelCallbackAdapter {
             resolution: Resolution { width, height },
             pts,
         };
+
+        warn!(?frame, "Received frame from decklink"); // TODO: switch to trace
         if sender.send(PipelineEvent::Data(frame)).is_err() {
             debug!("Failed to send frame from DeckLink. Channel closed.")
         }
+        Ok(())
     }
 
     fn handle_audio_packet(
         &self,
         audio_packet: &mut AudioInputPacket,
         sender: &Sender<PipelineEvent<DecodedSamples>>,
-    ) {
-        let pts = audio_packet.packet_time().unwrap();
-        let samples = audio_packet.as_32_bit_stereo().unwrap();
+    ) -> Result<(), decklink::DeckLinkError> {
+        let offset = *self.offset.lock().unwrap();
+        let pts = audio_packet.packet_time()? + offset;
+
+        let samples = audio_packet.as_32_bit_stereo()?;
         let samples = DecodedSamples {
             samples: Arc::new(Samples::Stereo32Bit(samples)),
             start_pts: pts,
@@ -105,6 +134,62 @@ impl ChannelCallbackAdapter {
         if sender.send(PipelineEvent::Data(samples)).is_err() {
             debug!("Failed to send samples from DeckLink. Channel closed.")
         }
+        Ok(())
+    }
+
+    fn handle_format_change(
+        &self,
+        display_mode: DisplayMode,
+        flags: DetectedVideoInputFormatFlags,
+    ) -> Result<(), decklink::DeckLinkError> {
+        let Some(input) = self.input.upgrade() else {
+            return Ok(());
+        };
+
+        let mode = display_mode.display_mode_type()?;
+
+        // TODO: mostly placeholder to pick sth
+        // in case of unsupported format
+        let pixel_format = if flags.format_y_cb_cr_422 {
+            if flags.bit_depth_8 {
+                PixelFormat::Format8BitYUV
+            } else if flags.bit_depth_10 {
+                PixelFormat::Format10BitYUV
+            } else {
+                warn!("Unknown format, falling back to 8-bit YUV");
+                PixelFormat::Format8BitYUV
+            }
+        } else if flags.format_rgb_444 {
+            if flags.bit_depth_8 {
+                PixelFormat::Format8BitBGRA
+            } else if flags.bit_depth_10 {
+                PixelFormat::Format10BitRGB
+            } else if flags.bit_depth_12 {
+                PixelFormat::Format12BitRGB
+            } else {
+                warn!("Unknown format, falling back to 10-bit RGB");
+                PixelFormat::Format10BitRGB
+            }
+        } else {
+            warn!("Unknown format, skipping change");
+            return Ok(());
+        };
+
+        input.pause_streams()?;
+        input.enable_video(
+            mode,
+            pixel_format,
+            VideoInputFlags {
+                enable_format_detection: true,
+                ..Default::default()
+            },
+        )?;
+        input.flush_streams()?;
+        input.start_streams()?;
+
+        *self.offset.lock().unwrap() = self.start_time().elapsed();
+
+        Ok(())
     }
 }
 
@@ -115,23 +200,51 @@ impl InputCallback for ChannelCallbackAdapter {
         audio_packet: Option<&mut AudioInputPacket>,
     ) -> InputCallbackResult {
         let _span = self.span.enter();
+
+        // ensure init start time on first frame
+        self.start_time();
+
         if let (Some(video_frame), Some(sender)) = (video_frame, &self.video_sender) {
-            self.handle_video_frame(video_frame, sender)
+            if let Err(err) = self.handle_video_frame(video_frame, sender) {
+                warn!(
+                    "Failed to handle video frame: {}",
+                    ErrorStack::new(&err).into_string()
+                )
+            }
         }
+
         if let (Some(audio_packet), Some(sender)) = (audio_packet, &self.audio_sender) {
-            self.handle_audio_packet(audio_packet, sender)
+            if let Err(err) = self.handle_audio_packet(audio_packet, sender) {
+                warn!(
+                    "Failed to handle video frame: {}",
+                    ErrorStack::new(&err).into_string()
+                )
+            }
         }
+
         InputCallbackResult::Ok
     }
 
     fn video_input_format_changed(
         &self,
         events: VideoInputFormatChangedEvents,
-        _display_mode: DisplayMode,
+        display_mode: DisplayMode,
         flags: DetectedVideoInputFormatFlags,
     ) -> InputCallbackResult {
         let _span = self.span.enter();
-        warn!("Format changed {events:#?} {flags:#?}");
+
+        if events.field_dominance_changed
+            || events.display_mode_changed
+            || events.colorspace_changed
+        {
+            if let Err(err) = self.handle_format_change(display_mode, flags) {
+                warn!(
+                    "Failed to handle format change: {}",
+                    ErrorStack::new(&err).into_string()
+                );
+            }
+        }
+
         InputCallbackResult::Ok
     }
 }

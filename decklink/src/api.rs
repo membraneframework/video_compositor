@@ -1,3 +1,5 @@
+use std::ptr::null_mut;
+
 use crate::DeckLinkError;
 
 use input::DynInputCallback;
@@ -173,6 +175,8 @@ mod ffi {
         ) -> Result<()>;
         unsafe fn input_start_streams(input: *mut IDeckLinkInput) -> Result<()>;
         unsafe fn input_stop_streams(input: *mut IDeckLinkInput) -> Result<()>;
+        unsafe fn input_pause_streams(input: *mut IDeckLinkInput) -> Result<()>;
+        unsafe fn input_flush_streams(input: *mut IDeckLinkInput) -> Result<()>;
         unsafe fn input_set_callback(
             input: *mut IDeckLinkInput,
             cb: Box<DynInputCallback>,
@@ -298,9 +302,13 @@ impl DeckLink {
         Ok(Input(input))
     }
 
-    pub fn profile_manager(&self) -> Result<ProfileManager, DeckLinkError> {
+    pub fn profile_manager(&self) -> Result<Option<ProfileManager>, DeckLinkError> {
         let manager = unsafe { ffi::decklink_profile_manager(self.0) }?;
-        Ok(ProfileManager(manager))
+        if manager == null_mut() {
+            Ok(None)
+        } else {
+            Ok(Some(ProfileManager(manager)))
+        }
     }
 
     pub fn configuration(&self) -> Result<DeckLinkConfiguration, DeckLinkError> {
@@ -323,7 +331,7 @@ pub fn get_decklinks() -> Result<Vec<DeckLink>, DeckLinkError> {
         .collect())
 }
 
-pub struct DisplayMode(*mut ffi::IDeckLinkDisplayMode);
+pub struct DisplayMode(*mut ffi::IDeckLinkDisplayMode, bool);
 
 impl DisplayMode {
     pub fn width(&self) -> usize {
@@ -349,6 +357,8 @@ impl DisplayMode {
 
 impl Drop for DisplayMode {
     fn drop(&mut self) {
-        unsafe { ffi::display_mode_release(self.0) }
+        if self.1 {
+            unsafe { ffi::display_mode_release(self.0) }
+        }
     }
 }
