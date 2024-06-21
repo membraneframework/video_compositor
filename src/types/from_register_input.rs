@@ -148,7 +148,6 @@ impl TryFrom<Mp4> for pipeline::RegisterInputOptions {
             (Some(_), Some(_)) | (None, None) => {
                 return Err(TypeError::new(BAD_URL_PATH_SPEC));
             }
-
             (Some(url), None) => input::mp4::Source::Url(url),
             (None, Some(path)) => input::mp4::Source::File(path.into()),
         };
@@ -178,7 +177,8 @@ impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
         Ok(pipeline::RegisterInputOptions {
             input_options: input::InputOptions::DeckLink(input::decklink::DeckLinkOptions {
                 subdevice_index: value.subdevice_index,
-                enable_audio: false,
+                display_name: value.display_name,
+                enable_audio: value.enable_audio.unwrap_or(true),
             }),
             queue_options: queue::InputOptions {
                 required: true,

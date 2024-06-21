@@ -77,6 +77,7 @@ impl ChannelCallbackAdapter {
         let height = video_frame.height();
         let bytes = video_frame.bytes()?;
         let bytes_per_row = video_frame.bytes_per_row();
+        let pixel_format = video_frame.pixel_format()?;
 
         let mut y_plane = BytesMut::with_capacity(width * height);
         let mut u_plane = BytesMut::with_capacity((width / 2) * (height / 2));
@@ -110,7 +111,7 @@ impl ChannelCallbackAdapter {
             pts,
         };
 
-        warn!(?frame, "Received frame from decklink"); // TODO: switch to trace
+        warn!(?frame, ?pixel_format, "Received frame from decklink"); // TODO: switch to trace
         if sender.send(PipelineEvent::Data(frame)).is_err() {
             debug!("Failed to send frame from DeckLink. Channel closed.")
         }
@@ -174,6 +175,8 @@ impl ChannelCallbackAdapter {
             warn!("Unknown format, skipping change");
             return Ok(());
         };
+
+        warn!("Detected new input format  {mode:?} {pixel_format:?} {flags:?}");
 
         input.pause_streams()?;
         input.enable_video(

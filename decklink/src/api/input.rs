@@ -2,7 +2,10 @@ use std::{mem::size_of, time::Duration};
 
 use crate::{DeckLinkError, InputCallback, InputCallbackResult};
 
-use super::{ffi, DisplayMode};
+use super::{
+    ffi::{self, PixelFormat},
+    DisplayMode,
+};
 
 pub struct Input(pub(super) *mut ffi::IDeckLinkInput);
 
@@ -97,6 +100,9 @@ impl VideoInputFrame {
     }
     pub fn bytes_per_row(&self) -> usize {
         unsafe { ffi::video_input_frame_row_bytes(self.0) as usize }
+    }
+    pub fn pixel_format(&self) -> Result<PixelFormat, DeckLinkError> {
+        Ok(unsafe { ffi::video_input_frame_pixel_format(self.0)? })
     }
     pub fn stream_time(&self) -> Result<Duration, DeckLinkError> {
         let time_value = unsafe { ffi::video_input_frame_stream_time(self.0, 1_000_000_000)? };

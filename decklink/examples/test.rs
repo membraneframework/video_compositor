@@ -1,8 +1,7 @@
 use anyhow::{anyhow, Result};
 use decklink::{
-    find_decklink_with_capture_support, get_decklinks, AudioSampleType, DeckLinkError,
-    DisplayModeType, PixelFormat, SupportedVideoModeFlags, VideoConnection,
-    VideoInputConversionMode, VideoInputFlags,
+    get_decklinks, AudioSampleType, DeckLinkError, DisplayModeType, PixelFormat,
+    SupportedVideoModeFlags, VideoConnection, VideoInputConversionMode, VideoInputFlags,
 };
 
 pub struct ErrorStack<'a>(Option<&'a (dyn std::error::Error + 'static)>);
@@ -42,7 +41,7 @@ pub fn test() -> Result<(), DeckLinkError> {
         println!("{:#?}", deck.info()?);
     }
 
-    let decklink = find_decklink_with_capture_support()?.unwrap();
+    let decklink = decklinks[0];
 
     let mut input = decklink.input()?;
     let mode = input.supports_video_mode(

@@ -4,27 +4,29 @@
 #include "enums.h"
 
 #include "decklink/src/api.rs.h"
+#include <cstdint>
 
 rust::Vec<IDeckLinkPtr> get_decklinks();
 
-VideoIOSupport into_video_io_support(int64_t value) noexcept;
+VideoIOSupport into_video_io_support(int64_t value);
 
 IDeckLinkProfileAttributes *decklink_profile_attributes(IDeckLink *decklink);
 IDeckLinkInput *decklink_input(IDeckLink *decklink);
 IDeckLinkProfileManager *decklink_profile_manager(IDeckLink *decklink);
 IDeckLinkConfiguration *decklink_configuration(IDeckLink *decklink);
-void decklink_release(IDeckLink *decklink) noexcept;
+void decklink_release(IDeckLink *decklink);
 
 // IDeckLinkProfileAttributes
-bool profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
-                             FlagAttributeId id);
-int64_t profile_attributes_integer(IDeckLinkProfileAttributes *attrs,
-                                   IntegerAttributeId id);
-double profile_attributes_float(IDeckLinkProfileAttributes *attrs,
-                                FloatAttributeId id);
-rust::String profile_attributes_string(IDeckLinkProfileAttributes *attrs,
-                                       StringAttributeId id);
-void profile_attributes_release(IDeckLinkProfileAttributes *attrs) noexcept;
+HResult profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
+                                FlagAttributeId id, bool &out);
+HResult profile_attributes_integer(IDeckLinkProfileAttributes *attrs,
+                                   IntegerAttributeId id, int64_t &out);
+HResult profile_attributes_float(IDeckLinkProfileAttributes *attrs,
+                                 FloatAttributeId id, double &out);
+HResult profile_attributes_string(IDeckLinkProfileAttributes *attrs,
+                                  StringAttributeId id, rust::String &out,
+                                  bool is_static);
+HResult profile_attributes_release(IDeckLinkProfileAttributes *attrs);
 
 // IDeckLinkInput
 DisplayModeType
@@ -41,57 +43,57 @@ void input_start_streams(IDeckLinkInput *input);
 void input_stop_streams(IDeckLinkInput *input);
 void input_pause_streams(IDeckLinkInput *input);
 void input_flush_streams(IDeckLinkInput *input);
-void input_release(IDeckLinkInput *input) noexcept;
+void input_release(IDeckLinkInput *input);
 
 // IDeckLinkProfileManager
 rust::Vec<IDeckLinkProfilePtr>
 profile_manager_profiles(IDeckLinkProfileManager *manager);
-void profile_manager_release(IDeckLinkProfileManager *manager) noexcept;
+void profile_manager_release(IDeckLinkProfileManager *manager);
 
 // IDeckLinkProfile
 IDeckLinkProfileAttributes *
 profile_profile_attributes(IDeckLinkProfile *profile);
 bool profile_is_active(IDeckLinkProfile *profile);
-void profile_release(IDeckLinkProfile *profile) noexcept;
+void profile_release(IDeckLinkProfile *profile);
 
 // IDeckLinkConfiguration
-bool configuration_flag(IDeckLinkConfiguration *conf, FlagConfigurationId id);
-int64_t configuration_integer(IDeckLinkConfiguration *conf,
-                              IntegerConfigurationId id);
-double configuration_float(IDeckLinkConfiguration *conf,
-                           FloatConfigurationId id);
-rust::String configuration_string(IDeckLinkConfiguration *conf,
-                                  StringConfigurationId id);
-void configuration_set_flag(IDeckLinkConfiguration *conf,
-                            FlagConfigurationId id, bool value);
-void configuration_set_integer(IDeckLinkConfiguration *conf,
-                               IntegerConfigurationId id, int64_t value);
-void configuration_set_float(IDeckLinkConfiguration *conf,
-                             FloatConfigurationId id, double value);
-void configuration_set_string(IDeckLinkConfiguration *conf,
-                              StringConfigurationId id, rust::String value);
-void configuration_release(IDeckLinkConfiguration *conf) noexcept;
+HResult configuration_flag(IDeckLinkConfiguration *conf, FlagConfigurationId id,
+                           bool &out);
+HResult configuration_integer(IDeckLinkConfiguration *conf,
+                              IntegerConfigurationId id, int64_t &out);
+HResult configuration_float(IDeckLinkConfiguration *conf,
+                            FloatConfigurationId id, double &out);
+HResult configuration_string(IDeckLinkConfiguration *conf,
+                             StringConfigurationId id, rust::String &out);
+HResult configuration_set_flag(IDeckLinkConfiguration *conf,
+                               FlagConfigurationId id, bool value);
+HResult configuration_set_integer(IDeckLinkConfiguration *conf,
+                                  IntegerConfigurationId id, int64_t value);
+HResult configuration_set_float(IDeckLinkConfiguration *conf,
+                                FloatConfigurationId id, double value);
+HResult configuration_set_string(IDeckLinkConfiguration *conf,
+                                 StringConfigurationId id, rust::String value);
+HResult configuration_release(IDeckLinkConfiguration *conf);
 
 // IDeckLinkVideoInputFrame
-long video_input_frame_width(IDeckLinkVideoInputFrame *input) noexcept;
-long video_input_frame_height(IDeckLinkVideoInputFrame *input) noexcept;
-long video_input_frame_row_bytes(IDeckLinkVideoInputFrame *input) noexcept;
-uint8_t *video_input_frame_bytes(IDeckLinkVideoInputFrame *input);
-BMDTimeValue video_input_frame_stream_time(IDeckLinkVideoInputFrame *input,
+long video_input_frame_width(IDeckLinkVideoInputFrame *frame);
+long video_input_frame_height(IDeckLinkVideoInputFrame *frame);
+long video_input_frame_row_bytes(IDeckLinkVideoInputFrame *frame);
+uint8_t *video_input_frame_bytes(IDeckLinkVideoInputFrame *frame);
+PixelFormat video_input_frame_pixel_format(IDeckLinkVideoInputFrame *frame);
+BMDTimeValue video_input_frame_stream_time(IDeckLinkVideoInputFrame *frame,
                                            BMDTimeScale time_scale);
 
 // IDeckLinkAudioInputPacket
 uint8_t *audio_input_packet_bytes(IDeckLinkAudioInputPacket *input);
-int64_t
-audio_input_packet_sample_count(IDeckLinkAudioInputPacket *input) noexcept;
+int64_t audio_input_packet_sample_count(IDeckLinkAudioInputPacket *input);
 BMDTimeValue audio_input_packet_packet_time(IDeckLinkAudioInputPacket *input,
                                             BMDTimeScale time_scale);
 
 // IDeckLinkDisplayMode
-int64_t display_mode_width(IDeckLinkDisplayMode* mode) noexcept;
-int64_t display_mode_height(IDeckLinkDisplayMode* mode) noexcept;
-rust::String display_mode_name(IDeckLinkDisplayMode* mode);
-DisplayModeType display_mode_display_mode_type(IDeckLinkDisplayMode* mode);
-Ratio display_mode_frame_rate(IDeckLinkDisplayMode* mode);
-void display_mode_release(IDeckLinkDisplayMode* mode) noexcept;
-
+int64_t display_mode_width(IDeckLinkDisplayMode *mode);
+int64_t display_mode_height(IDeckLinkDisplayMode *mode);
+rust::String display_mode_name(IDeckLinkDisplayMode *mode);
+DisplayModeType display_mode_display_mode_type(IDeckLinkDisplayMode *mode);
+Ratio display_mode_frame_rate(IDeckLinkDisplayMode *mode);
+void display_mode_release(IDeckLinkDisplayMode *mode);

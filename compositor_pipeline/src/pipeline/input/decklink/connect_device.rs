@@ -20,18 +20,20 @@ fn is_selected_decklink(
     let attr = decklink.profile_attributes()?;
 
     if let Some(subdevice) = opts.subdevice_index {
-        if attr.get_integer(IntegerAttributeId::SubDeviceIndex)? as u32 != subdevice {
+        if attr.get_integer(IntegerAttributeId::SubDeviceIndex)? != Some(subdevice.into()) {
             return Ok(false);
         }
     }
 
-    let video_io_support =
-        VideoIOSupport::from(attr.get_integer(IntegerAttributeId::VideoIOSupport)?);
+    let video_io_support = VideoIOSupport::from(
+        attr.get_integer(IntegerAttributeId::VideoIOSupport)?
+            .ok_or(DeckLinkError::NoCaptureSupport)?,
+    );
     if !video_io_support.capture {
-        return Ok(false);
+        return Err(DeckLinkError::NoCaptureSupport);
     }
 
-    if !attr.get_flag(FlagAttributeId::SupportsInputFormatDetection)? {
+    if attr.get_flag(FlagAttributeId::SupportsInputFormatDetection)? != Some(true) {
         return Ok(false);
     }
 

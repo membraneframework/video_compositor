@@ -498,4 +498,10 @@ pub mod ffi {
         pub field_dominance_changed: bool,
         pub colorspace_changed: bool,
     }
+
+    unsafe extern "C++" {
+        include!("decklink/cpp/enums.h");
+
+        fn into_video_input_conversion_mode(value: u32) -> VideoInputConversionMode;
+    }
 }

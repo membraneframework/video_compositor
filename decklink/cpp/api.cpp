@@ -28,7 +28,7 @@ rust::Vec<IDeckLinkPtr> get_decklinks() {
   }
 }
 
-VideoIOSupport into_video_io_support(int64_t value) noexcept {
+VideoIOSupport into_video_io_support(int64_t value) {
   VideoIOSupport state;
   if ((bmdDeviceSupportsCapture & value) != 0) {
     state.capture = true;
@@ -90,62 +90,43 @@ IDeckLinkConfiguration *decklink_configuration(IDeckLink *decklink) {
   return conf;
 }
 
-void decklink_release(IDeckLink *decklink) noexcept { decklink->Release(); }
+void decklink_release(IDeckLink *decklink) { decklink->Release(); }
 
 //
 // IDeckLinkProfileAttributes
 //
 
-bool profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
-                             FlagAttributeId id) {
-  bool value;
-  if (attrs->GetFlag(flag_attribute_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkProfileAttributes::GetFlag failed.");
-  }
-  return value;
+HResult profile_attributes_flag(IDeckLinkProfileAttributes *attrs,
+                                FlagAttributeId id, bool &out) {
+  return static_cast<HResult>(attrs->GetFlag(flag_attribute_id(id), &out));
 }
 
-int64_t profile_attributes_integer(IDeckLinkProfileAttributes *attrs,
-                                   IntegerAttributeId id) {
-  int64_t value;
-  auto result = attrs->GetInt(integer_attribute_id(id), &value);
-  if (result == E_INVALIDARG) {
-    return 0;
-  }
-  if (result != S_OK) {
-    throw std::runtime_error(
-        std::format("IDeckLinkProfileAttributes::GetInt failed. {:#x}",
-                    static_cast<unsigned int>(result)));
-  }
-  return value;
+HResult profile_attributes_integer(IDeckLinkProfileAttributes *attrs,
+                                   IntegerAttributeId id, int64_t &out) {
+  return static_cast<HResult>(attrs->GetInt(integer_attribute_id(id), &out));
 }
 
-double profile_attributes_float(IDeckLinkProfileAttributes *attrs,
-                                FloatAttributeId id) {
-  double value;
-  if (attrs->GetFloat(float_attribute_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkProfileAttributes::GetFloat failed.");
-  }
-  return value;
+HResult profile_attributes_float(IDeckLinkProfileAttributes *attrs,
+                                 FloatAttributeId id, double &out) {
+  return static_cast<HResult>(attrs->GetFloat(float_attribute_id(id), &out));
 }
 
-rust::String profile_attributes_string(IDeckLinkProfileAttributes *attrs,
-                                       StringAttributeId id) {
+HResult profile_attributes_string(IDeckLinkProfileAttributes *attrs,
+                                  StringAttributeId id, rust::String &out,
+                                  bool is_static) {
   const char *value;
   auto result = attrs->GetString(string_attribute_id(id), &value);
-  if (result == E_INVALIDARG || result == E_NOTIMPL) {
-    return rust::String("");
+  if (result == S_OK) {
+    rust::String(value).swap(out);
   }
-  if (result != S_OK) {
-    throw std::runtime_error(
-        std::format("IDeckLinkProfileAttributes::GetString failed. {:#x}",
-                    static_cast<unsigned int>(result)));
+  if (!is_static) {
+    free(const_cast<char *>(value));
   }
-  return rust::String(value);
+  return static_cast<HResult>(result);
 }
 
-void profile_attributes_release(IDeckLinkProfileAttributes *attrs) noexcept {
-  attrs->Release();
+HResult profile_attributes_release(IDeckLinkProfileAttributes *attrs) {
+  return static_cast<HResult>(attrs->Release());
 }
 
 //
@@ -234,7 +215,7 @@ void input_flush_streams(IDeckLinkInput *input) {
   }
 }
 
-void input_release(IDeckLinkInput *input) noexcept { input->Release(); }
+void input_release(IDeckLinkInput *input) { input->Release(); }
 
 //
 // IDeckLinkProfileManager
@@ -259,7 +240,7 @@ profile_manager_profiles(IDeckLinkProfileManager *manager) {
   }
 }
 
-void profile_manager_release(IDeckLinkProfileManager *manager) noexcept {
+void profile_manager_release(IDeckLinkProfileManager *manager) {
   manager->Release();
 }
 
@@ -288,90 +269,77 @@ bool profile_is_active(IDeckLinkProfile *profile) {
   return is_active;
 }
 
-void profile_release(IDeckLinkProfile *profile) noexcept { profile->Release(); }
+void profile_release(IDeckLinkProfile *profile) { profile->Release(); }
 
 //
 // IDeckLinkConfiguration
 //
 
-bool configuration_flag(IDeckLinkConfiguration *conf, FlagConfigurationId id) {
-  bool value;
-  if (conf->GetFlag(flag_configuration_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::GetFlag failed.");
-  }
-  return value;
+HResult configuration_flag(IDeckLinkConfiguration *conf, FlagConfigurationId id,
+                           bool &out) {
+  return static_cast<HResult>(conf->GetFlag(flag_configuration_id(id), &out));
 }
 
-int64_t configuration_integer(IDeckLinkConfiguration *conf,
-                              IntegerConfigurationId id) {
-  int64_t value;
-  if (conf->GetInt(integer_configuration_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::GetInt failed.");
-  }
-  return value;
+HResult configuration_integer(IDeckLinkConfiguration *conf,
+                              IntegerConfigurationId id, int64_t &out) {
+  return static_cast<HResult>(conf->GetInt(integer_configuration_id(id), &out));
 }
 
-double configuration_float(IDeckLinkConfiguration *conf,
-                           FloatConfigurationId id) {
-  double value;
-  if (conf->GetFloat(float_configuration_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::GetFloat failed.");
-  }
-  return value;
+HResult configuration_float(IDeckLinkConfiguration *conf,
+                            FloatConfigurationId id, double &out) {
+  return static_cast<HResult>(conf->GetFloat(float_configuration_id(id), &out));
 }
 
-rust::String configuration_string(IDeckLinkConfiguration *conf,
-                                  StringConfigurationId id) {
+HResult configuration_string(IDeckLinkConfiguration *conf,
+                             StringConfigurationId id, rust::String &out) {
   const char *value;
-  if (conf->GetString(string_configuration_id(id), &value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::GetString failed.");
+  auto result = conf->GetString(string_configuration_id(id), &value);
+  if (result == S_OK) {
+    rust::String(value).swap(out);
   }
-  return rust::String(value);
+  free(const_cast<char *>(value));
+  return static_cast<HResult>(result);
 }
 
-void configuration_set_flag(IDeckLinkConfiguration *conf,
-                            FlagConfigurationId id, bool value) {
-  if (conf->SetFlag(flag_configuration_id(id), value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::SetFlag failed.");
-  }
+HResult configuration_set_flag(IDeckLinkConfiguration *conf,
+                               FlagConfigurationId id, bool value) {
+  return static_cast<HResult>(conf->SetFlag(flag_configuration_id(id), value));
 }
 
-void configuration_set_integer(IDeckLinkConfiguration *conf,
-                               IntegerConfigurationId id, int64_t value) {
-  if (conf->SetInt(integer_configuration_id(id), value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::SetInt failed.");
-  }
-}
-void configuration_set_float(IDeckLinkConfiguration *conf,
-                             FloatConfigurationId id, double value) {
-  if (conf->SetFloat(float_configuration_id(id), value) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::SetFloat failed.");
-  }
-}
-void configuration_set_string(IDeckLinkConfiguration *conf,
-                              StringConfigurationId id, rust::String value) {
-  if (conf->SetString(string_configuration_id(id), value.c_str()) != S_OK) {
-    throw std::runtime_error("IDeckLinkConfigurations::SetString failed.");
-  }
+HResult configuration_set_integer(IDeckLinkConfiguration *conf,
+                                  IntegerConfigurationId id, int64_t value) {
+  return static_cast<HResult>(
+      conf->SetInt(integer_configuration_id(id), value));
 }
 
-void configuration_release(IDeckLinkConfiguration *conf) noexcept {
-  conf->Release();
+HResult configuration_set_float(IDeckLinkConfiguration *conf,
+                                FloatConfigurationId id, double value) {
+  return static_cast<HResult>(
+      conf->SetFloat(float_configuration_id(id), value));
+}
+
+HResult configuration_set_string(IDeckLinkConfiguration *conf,
+                                 StringConfigurationId id, rust::String value) {
+  return HResult(conf->SetString(string_configuration_id(id), value.c_str()));
+}
+
+HResult configuration_release(IDeckLinkConfiguration *conf) {
+  return static_cast<HResult>(conf->Release());
 }
 
 //
 // IDeckLinkVideoInputFrame
 //
 
-long video_input_frame_width(IDeckLinkVideoInputFrame *frame) noexcept {
+long video_input_frame_width(IDeckLinkVideoInputFrame *frame) {
   return frame->GetWidth();
 }
 
-long video_input_frame_height(IDeckLinkVideoInputFrame *frame) noexcept {
+long video_input_frame_height(IDeckLinkVideoInputFrame *frame) {
   return frame->GetHeight();
 }
 
-long video_input_frame_row_bytes(IDeckLinkVideoInputFrame *frame) noexcept {
+long video_input_frame_row_bytes(IDeckLinkVideoInputFrame *frame) {
   return frame->GetRowBytes();
 }
 
@@ -382,6 +350,10 @@ uint8_t *video_input_frame_bytes(IDeckLinkVideoInputFrame *frame) {
     throw std::runtime_error("IDeckLinkVideoInputFrame::GetBytes failed.");
   }
   return reinterpret_cast<uint8_t *>(buffer);
+}
+
+PixelFormat video_input_frame_pixel_format(IDeckLinkVideoInputFrame *frame) {
+  return into_pixel_format(frame->GetPixelFormat());
 }
 
 BMDTimeValue video_input_frame_stream_time(IDeckLinkVideoInputFrame *frame,
@@ -406,8 +378,7 @@ uint8_t *audio_input_packet_bytes(IDeckLinkAudioInputPacket *packet) {
   return reinterpret_cast<uint8_t *>(buffer);
 }
 
-int64_t
-audio_input_packet_sample_count(IDeckLinkAudioInputPacket *packet) noexcept {
+int64_t audio_input_packet_sample_count(IDeckLinkAudioInputPacket *packet) {
   return packet->GetSampleFrameCount();
 }
 
@@ -425,11 +396,11 @@ BMDTimeValue audio_input_packet_packet_time(IDeckLinkAudioInputPacket *packet,
 // IDeckLinkDisplayMode
 //
 
-int64_t display_mode_width(IDeckLinkDisplayMode *mode) noexcept {
+int64_t display_mode_width(IDeckLinkDisplayMode *mode) {
   return mode->GetWidth();
 }
 
-int64_t display_mode_height(IDeckLinkDisplayMode *mode) noexcept {
+int64_t display_mode_height(IDeckLinkDisplayMode *mode) {
   return mode->GetHeight();
 }
 
@@ -456,6 +427,4 @@ Ratio display_mode_frame_rate(IDeckLinkDisplayMode *mode) {
   return Ratio{num, den};
 }
 
-void display_mode_release(IDeckLinkDisplayMode *mode) noexcept {
-  mode->Release();
-}
+void display_mode_release(IDeckLinkDisplayMode *mode) { mode->Release(); }

@@ -31,7 +31,10 @@ mod ffi {
         pub den: i64,
     }
 
-    #[repr(i64)]
+    // HResult is defined as C++ int, but values are larger than 32-bit integer
+    // can hold, so we are using here u32 instead
+    #[derive(Debug, Copy)]
+    #[repr(u32)]
     pub enum HResult {
         /// S_OK
         Ok = 0x00000000,
@@ -108,7 +111,6 @@ mod ffi {
         type IDeckLinkVideoInputFrame;
         type IDeckLinkAudioInputPacket;
         type IDeckLinkDisplayMode;
-        type REFIID;
 
         fn get_decklinks() -> Result<Vec<IDeckLinkPtr>>;
 
@@ -135,20 +137,25 @@ mod ffi {
         unsafe fn profile_attributes_flag(
             attrs: *mut IDeckLinkProfileAttributes,
             id: FlagAttributeId,
-        ) -> Result<bool>;
+            out: &mut bool,
+        ) -> Result<HResult>;
         unsafe fn profile_attributes_integer(
             attrs: *mut IDeckLinkProfileAttributes,
             id: IntegerAttributeId,
-        ) -> Result<i64>;
+            out: &mut i64,
+        ) -> Result<HResult>;
         unsafe fn profile_attributes_float(
             attrs: *mut IDeckLinkProfileAttributes,
             id: FloatAttributeId,
-        ) -> Result<f64>;
+            out: &mut f64,
+        ) -> Result<HResult>;
         unsafe fn profile_attributes_string(
             attrs: *mut IDeckLinkProfileAttributes,
             id: StringAttributeId,
-        ) -> Result<String>;
-        unsafe fn profile_attributes_release(attrs: *mut IDeckLinkProfileAttributes);
+            out: &mut String,
+            is_static: bool,
+        ) -> Result<HResult>;
+        unsafe fn profile_attributes_release(attrs: *mut IDeckLinkProfileAttributes) -> HResult;
     }
 
     // InputRef
@@ -207,40 +214,44 @@ mod ffi {
         unsafe fn configuration_flag(
             conf: *mut IDeckLinkConfiguration,
             id: FlagConfigurationId,
-        ) -> Result<bool>;
+            out: &mut bool,
+        ) -> Result<HResult>;
         unsafe fn configuration_integer(
             conf: *mut IDeckLinkConfiguration,
             id: IntegerConfigurationId,
-        ) -> Result<i64>;
+            out: &mut i64,
+        ) -> Result<HResult>;
         unsafe fn configuration_float(
             conf: *mut IDeckLinkConfiguration,
             id: FloatConfigurationId,
-        ) -> Result<f64>;
+            out: &mut f64,
+        ) -> Result<HResult>;
         unsafe fn configuration_string(
             conf: *mut IDeckLinkConfiguration,
             id: StringConfigurationId,
-        ) -> Result<String>;
+            out: &mut String,
+        ) -> Result<HResult>;
         unsafe fn configuration_set_flag(
             conf: *mut IDeckLinkConfiguration,
             id: FlagConfigurationId,
             value: bool,
-        ) -> Result<()>;
+        ) -> Result<HResult>;
         unsafe fn configuration_set_integer(
             conf: *mut IDeckLinkConfiguration,
             id: IntegerConfigurationId,
             value: i64,
-        ) -> Result<()>;
+        ) -> Result<HResult>;
         unsafe fn configuration_set_float(
             conf: *mut IDeckLinkConfiguration,
             id: FloatConfigurationId,
             value: f64,
-        ) -> Result<()>;
+        ) -> Result<HResult>;
         unsafe fn configuration_set_string(
             conf: *mut IDeckLinkConfiguration,
             id: StringConfigurationId,
             value: String,
-        ) -> Result<()>;
-        unsafe fn configuration_release(conf: *mut IDeckLinkConfiguration);
+        ) -> Result<HResult>;
+        unsafe fn configuration_release(conf: *mut IDeckLinkConfiguration) -> HResult;
     }
 
     // IDeckLinkVideoInputFrame
@@ -249,6 +260,7 @@ mod ffi {
         unsafe fn video_input_frame_width(input: *mut IDeckLinkVideoInputFrame) -> i64;
         unsafe fn video_input_frame_row_bytes(input: *mut IDeckLinkVideoInputFrame) -> i64;
         unsafe fn video_input_frame_bytes(input: *mut IDeckLinkVideoInputFrame) -> Result<*mut u8>;
+        unsafe fn video_input_frame_pixel_format(input: *mut IDeckLinkVideoInputFrame) -> Result<PixelFormat>;
         unsafe fn video_input_frame_stream_time(
             input: *mut IDeckLinkVideoInputFrame,
             time_scale: i64,
@@ -359,6 +371,15 @@ impl Drop for DisplayMode {
     fn drop(&mut self) {
         if self.1 {
             unsafe { ffi::display_mode_release(self.0) }
+        }
+    }
+}
+
+impl ffi::HResult {
+    fn into_result(self) -> Result<(), DeckLinkError> {
+        match self {
+            ffi::HResult::Ok => Ok(()),
+            hresult => Err(DeckLinkError::HResultError(hresult.repr)),
         }
     }
 }

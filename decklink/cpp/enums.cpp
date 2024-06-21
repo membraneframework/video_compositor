@@ -1,5 +1,5 @@
 #include "decklink/decklink_sdk/include/DeckLinkAPI.h"
-#include "decklink/src/enums.rs.h"
+#include "enums.h"
 #include <format>
 #include <stdexcept>
 

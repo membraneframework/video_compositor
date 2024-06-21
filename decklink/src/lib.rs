@@ -32,26 +32,19 @@ pub use input_callback::InputCallbackResult;
 
 pub use api::get_decklinks;
 
-pub fn find_decklink_with_capture_support() -> Result<Option<DeckLink>, DeckLinkError> {
-    let decklinks = get_decklinks()?;
-
-    for decklink in decklinks {
-        let attr = decklink.profile_attributes()?;
-        let value = attr.get_integer(enums::ffi::IntegerAttributeId::VideoIOSupport)?;
-        let value = api::into_video_io_support(value);
-        if value.capture {
-            return Ok(Some(decklink));
-        }
-    }
-    Ok(None)
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum DeckLinkError {
     #[error("Unknown error: {0:#}")]
     UnknownError(#[from] cxx::Exception),
-    #[error("Failed to access profile attribute {0}")]
-    ProfileAttributeAccessError(String, #[source] cxx::Exception)
+
+    #[error("ProfileAttribute error: {0}")]
+    ProfileAttributeError(String),
+
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+
+    #[error("Decklink error code: {0:#x}")]
+    HResultError(u32),
 }
 
 impl From<i64> for VideoIOSupport {

@@ -43,7 +43,7 @@ fn start_example_client_code() -> Result<()> {
         "input/input_1/register",
         &json!({
             "type": "decklink",
-            "subdevice": 0,
+            "subdevice_index": 0,
         }),
     )?;
 

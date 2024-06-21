@@ -18,10 +18,13 @@ pub enum DeckLinkError {
     DecklinkError(#[from] decklink::DeckLinkError),
     #[error("DeckLink device with capture support was not detected.")]
     DeckLinkWithCaptureNotFound,
+    #[error("Selected device not support capture.")]
+    NoCaptureSupport
 }
 
 pub struct DeckLinkOptions {
     pub subdevice_index: Option<u32>,
+    pub display_name: Option<String>,
     pub enable_audio: bool,
 }
 

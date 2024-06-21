@@ -3,8 +3,11 @@ use crate::{
         device::DeckLinkConfiguration, into_video_io_support, profile::ProfileAttributes,
         VideoIOSupport,
     },
-    enums::ffi::{FlagAttributeId, IntegerAttributeId, StringAttributeId},
-    DeckLink, DeckLinkError,
+    enums::{
+        self,
+        ffi::{FlagAttributeId, IntegerAttributeId, IntegerConfigurationId, StringAttributeId},
+    },
+    DeckLink, DeckLinkError, VideoInputConversionMode,
 };
 
 #[derive(Debug)]
@@ -47,33 +50,33 @@ pub struct ProfileInfo {
 
 #[derive(Debug)]
 pub struct ProfileAttributesInfo {
-    pub video_io_support: VideoIOSupport,
-    pub model_name: String,
-    pub vendor_name: String,
-    pub display_name: String,
-    pub device_handle: String,
-    pub ethernet_mac_address: String,
-    pub serial_port_device_name: String,
+    pub video_io_support: Option<VideoIOSupport>,
+    pub model_name: Option<String>,
+    pub vendor_name: Option<String>,
+    pub display_name: Option<String>,
+    pub device_handle: Option<String>,
+    pub ethernet_mac_address: Option<String>,
+    pub serial_port_device_name: Option<String>,
 
-    pub profile_id: i64,
-    pub max_audio_channels: i64,
-    pub max_hdmi_audio_channels: i64,
-    pub number_of_subdevices: i64,
-    pub subdevice_index: i64,
-    pub persistent_id: i64,
-    pub device_group_id: i64,
-    pub topological_id: i64,
+    pub profile_id: Option<i64>,
+    pub max_audio_channels: Option<i64>,
+    pub max_hdmi_audio_channels: Option<i64>,
+    pub number_of_subdevices: Option<i64>,
+    pub subdevice_index: Option<i64>,
+    pub persistent_id: Option<i64>,
+    pub device_group_id: Option<i64>,
+    pub topological_id: Option<i64>,
 
-    pub supports_input_format_detection: bool,
-    pub has_serial_port: bool,
+    pub supports_input_format_detection: Option<bool>,
+    pub has_serial_port: Option<bool>,
 }
 
 impl ProfileAttributes {
     pub fn info(&self) -> Result<ProfileAttributesInfo, DeckLinkError> {
         Ok(ProfileAttributesInfo {
-            video_io_support: into_video_io_support(
-                self.get_integer(IntegerAttributeId::VideoIOSupport)?,
-            ),
+            video_io_support: self
+                .get_integer(IntegerAttributeId::VideoIOSupport)?
+                .map(into_video_io_support),
             model_name: self.get_string(StringAttributeId::ModelName)?,
             vendor_name: self.get_string(StringAttributeId::VendorName)?,
             display_name: self.get_string(StringAttributeId::DisplayName)?,
@@ -100,10 +103,16 @@ impl ProfileAttributes {
 }
 
 #[derive(Debug)]
-pub struct ConfigurationInfo {}
+pub struct ConfigurationInfo {
+    pub video_input_conversion_mode: Option<VideoInputConversionMode>,
+}
 
 impl DeckLinkConfiguration {
     pub fn info(&self) -> Result<ConfigurationInfo, DeckLinkError> {
-        Ok(ConfigurationInfo {})
+        Ok(ConfigurationInfo {
+            video_input_conversion_mode: self
+                .get_integer(IntegerConfigurationId::ConfigVideoInputConversionMode)?
+                .map(|value| enums::ffi::into_video_input_conversion_mode(value as u32)),
+        })
     }
 }
