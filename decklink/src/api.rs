@@ -173,23 +173,23 @@ mod ffi {
             mode: DisplayModeType,
             format: PixelFormat,
             flags: VideoInputFlags,
-        ) -> Result<()>;
+        ) -> Result<HResult>;
         unsafe fn input_enable_audio(
             input: *mut IDeckLinkInput,
             sample_rate: u32,
             sample_type: AudioSampleType,
             channels: u32,
-        ) -> Result<()>;
-        unsafe fn input_start_streams(input: *mut IDeckLinkInput) -> Result<()>;
-        unsafe fn input_stop_streams(input: *mut IDeckLinkInput) -> Result<()>;
-        unsafe fn input_pause_streams(input: *mut IDeckLinkInput) -> Result<()>;
-        unsafe fn input_flush_streams(input: *mut IDeckLinkInput) -> Result<()>;
+        ) -> Result<HResult>;
+        unsafe fn input_start_streams(input: *mut IDeckLinkInput) -> Result<HResult>;
+        unsafe fn input_stop_streams(input: *mut IDeckLinkInput) -> Result<HResult>;
+        unsafe fn input_pause_streams(input: *mut IDeckLinkInput) -> Result<HResult>;
+        unsafe fn input_flush_streams(input: *mut IDeckLinkInput) -> Result<HResult>;
         unsafe fn input_set_callback(
             input: *mut IDeckLinkInput,
             cb: Box<DynInputCallback>,
-        ) -> Result<()>;
+        ) -> Result<HResult>;
 
-        unsafe fn input_release(input: *mut IDeckLinkInput);
+        unsafe fn input_release(input: *mut IDeckLinkInput) -> HResult;
     }
 
     // IDeckLinkProfileManager
@@ -260,7 +260,9 @@ mod ffi {
         unsafe fn video_input_frame_width(input: *mut IDeckLinkVideoInputFrame) -> i64;
         unsafe fn video_input_frame_row_bytes(input: *mut IDeckLinkVideoInputFrame) -> i64;
         unsafe fn video_input_frame_bytes(input: *mut IDeckLinkVideoInputFrame) -> Result<*mut u8>;
-        unsafe fn video_input_frame_pixel_format(input: *mut IDeckLinkVideoInputFrame) -> Result<PixelFormat>;
+        unsafe fn video_input_frame_pixel_format(
+            input: *mut IDeckLinkVideoInputFrame,
+        ) -> Result<PixelFormat>;
         unsafe fn video_input_frame_stream_time(
             input: *mut IDeckLinkVideoInputFrame,
             time_scale: i64,
@@ -293,7 +295,7 @@ mod ffi {
     }
 }
 
-pub use ffi::{into_video_io_support, VideoIOSupport};
+pub use ffi::{into_video_io_support, HResult, VideoIOSupport};
 
 use self::{
     device::DeckLinkConfiguration,
@@ -379,7 +381,7 @@ impl ffi::HResult {
     fn into_result(self) -> Result<(), DeckLinkError> {
         match self {
             ffi::HResult::Ok => Ok(()),
-            hresult => Err(DeckLinkError::HResultError(hresult.repr)),
+            hresult => Err(DeckLinkError::HResultError(hresult)),
         }
     }
 }

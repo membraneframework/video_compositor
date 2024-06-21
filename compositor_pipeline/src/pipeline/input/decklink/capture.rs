@@ -7,11 +7,11 @@ use bytes::{BufMut, BytesMut};
 use compositor_render::{error::ErrorStack, Frame, Resolution, YuvData, YuvVariant};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use decklink::{
-    AudioInputPacket, DetectedVideoInputFormatFlags, DisplayMode, InputCallback,
+    AudioInputPacket, AudioSampleType, DetectedVideoInputFormatFlags, DisplayMode, InputCallback,
     InputCallbackResult, PixelFormat, VideoInputFlags, VideoInputFormatChangedEvents,
     VideoInputFrame,
 };
-use tracing::{debug, warn, Span};
+use tracing::{debug, info, trace, warn, Span};
 
 use crate::{
     pipeline::structs::{DecodedSamples, Samples},
@@ -24,6 +24,9 @@ pub(super) struct ChannelCallbackAdapter {
     video_sender: Option<Sender<PipelineEvent<Frame>>>,
     audio_sender: Option<Sender<PipelineEvent<DecodedSamples>>>,
     span: Span,
+
+    // I'm not sure, but I suspect that holding Arc here would create a circular
+    // dependency
     input: Weak<decklink::Input>,
     start_time: OnceLock<Instant>,
     offset: Mutex<Duration>,
@@ -75,16 +78,43 @@ impl ChannelCallbackAdapter {
 
         let width = video_frame.width();
         let height = video_frame.height();
-        let bytes = video_frame.bytes()?;
+        let data = video_frame.bytes()?;
         let bytes_per_row = video_frame.bytes_per_row();
         let pixel_format = video_frame.pixel_format()?;
 
+        let frame = match pixel_format {
+            PixelFormat::Format8BitYUV => {
+                Self::frame_from_yuv_422(width, height, bytes_per_row, data, pts)
+            }
+            PixelFormat::Format10BitRGB => {
+                Self::frame_from_yuv_422(width, height, bytes_per_row, data, pts)
+            }
+            pixel_format => {
+                warn!(?pixel_format, "Unsupported pixel format");
+                return Ok(());
+            }
+        };
+
+        trace!(?frame, ?pixel_format, "Received frame from decklink"); // TODO: switch to trace
+        if sender.send(PipelineEvent::Data(frame)).is_err() {
+            debug!("Failed to send frame from DeckLink. Channel closed.")
+        }
+        Ok(())
+    }
+
+    fn frame_from_yuv_422(
+        width: usize,
+        height: usize,
+        bytes_per_row: usize,
+        data: bytes::Bytes,
+        pts: Duration,
+    ) -> Frame {
         let mut y_plane = BytesMut::with_capacity(width * height);
         let mut u_plane = BytesMut::with_capacity((width / 2) * (height / 2));
         let mut v_plane = BytesMut::with_capacity((width / 2) * (height / 2));
 
         // TODO: temporary conversion in Rust. Rework it to do it on a GPU
-        for (row_index, row) in bytes.chunks(bytes_per_row).enumerate() {
+        for (row_index, row) in data.chunks(bytes_per_row).enumerate() {
             for (index, pixel) in row.chunks(2).enumerate() {
                 if index < width && pixel.len() >= 2 {
                     y_plane.put_u8(pixel[1]);
@@ -100,7 +130,7 @@ impl ChannelCallbackAdapter {
             }
         }
 
-        let frame = Frame {
+        Frame {
             data: YuvData {
                 variant: YuvVariant::YUV420P,
                 y_plane: y_plane.freeze(),
@@ -109,13 +139,7 @@ impl ChannelCallbackAdapter {
             },
             resolution: Resolution { width, height },
             pts,
-        };
-
-        warn!(?frame, ?pixel_format, "Received frame from decklink"); // TODO: switch to trace
-        if sender.send(PipelineEvent::Data(frame)).is_err() {
-            debug!("Failed to send frame from DeckLink. Channel closed.")
         }
-        Ok(())
     }
 
     fn handle_audio_packet(
@@ -126,9 +150,12 @@ impl ChannelCallbackAdapter {
         let offset = *self.offset.lock().unwrap();
         let pts = audio_packet.packet_time()? + offset;
 
-        let samples = audio_packet.as_32_bit_stereo()?;
+        let samples = audio_packet.as_16_bit_stereo()?;
+        let raw = audio_packet.raw_bytes(2, AudioSampleType::Sample16bit)?;
+        let s: &[u8] =  &raw[..];
+        warn!(raw =? &raw[..], ?samples, "Audio");
         let samples = DecodedSamples {
-            samples: Arc::new(Samples::Stereo32Bit(samples)),
+            samples: Arc::new(Samples::Stereo16Bit(samples)),
             start_pts: pts,
             sample_rate: AUDIO_SAMPLE_RATE,
         };
@@ -176,7 +203,7 @@ impl ChannelCallbackAdapter {
             return Ok(());
         };
 
-        warn!("Detected new input format  {mode:?} {pixel_format:?} {flags:?}");
+        info!("Detected new input format {mode:?} {pixel_format:?} {flags:?}");
 
         input.pause_streams()?;
         input.enable_video(

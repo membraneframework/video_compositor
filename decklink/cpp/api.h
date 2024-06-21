@@ -34,16 +34,16 @@ input_supports_video_mode(IDeckLinkInput *input, VideoConnection conn,
                           DisplayModeType mode, PixelFormat pixel_format,
                           VideoInputConversionMode conversion_mode,
                           SupportedVideoModeFlags supported_mode_flags);
-void input_enable_video(IDeckLinkInput *input, DisplayModeType mode,
+HResult input_enable_video(IDeckLinkInput *input, DisplayModeType mode,
                         PixelFormat format, VideoInputFlags flags);
-void input_enable_audio(IDeckLinkInput *input, uint32_t sample_rate,
+HResult input_enable_audio(IDeckLinkInput *input, uint32_t sample_rate,
                         AudioSampleType sample_type, uint32_t channels);
-void input_set_callback(IDeckLinkInput *input, rust::Box<DynInputCallback> cb);
-void input_start_streams(IDeckLinkInput *input);
-void input_stop_streams(IDeckLinkInput *input);
-void input_pause_streams(IDeckLinkInput *input);
-void input_flush_streams(IDeckLinkInput *input);
-void input_release(IDeckLinkInput *input);
+HResult input_set_callback(IDeckLinkInput *input, rust::Box<DynInputCallback> cb);
+HResult input_start_streams(IDeckLinkInput *input);
+HResult input_stop_streams(IDeckLinkInput *input);
+HResult input_pause_streams(IDeckLinkInput *input);
+HResult input_flush_streams(IDeckLinkInput *input);
+HResult input_release(IDeckLinkInput *input);
 
 // IDeckLinkProfileManager
 rust::Vec<IDeckLinkProfilePtr>

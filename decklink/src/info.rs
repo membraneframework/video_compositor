@@ -56,12 +56,15 @@ pub struct ProfileAttributesInfo {
     pub display_name: Option<String>,
     pub device_handle: Option<String>,
     pub ethernet_mac_address: Option<String>,
-    pub serial_port_device_name: Option<String>,
-
+    // throws 0x80000003 E_INVALIDARG
+    // pub serial_port_device_name: Option<String>,
     pub profile_id: Option<i64>,
     pub max_audio_channels: Option<i64>,
-    pub max_hdmi_audio_channels: Option<i64>,
+
+    // throws 0x80000003 E_INVALIDARG
+    // pub max_hdmi_audio_channels: Option<i64>,
     pub number_of_subdevices: Option<i64>,
+
     pub subdevice_index: Option<i64>,
     pub persistent_id: Option<i64>,
     pub device_group_id: Option<i64>,
@@ -82,13 +85,9 @@ impl ProfileAttributes {
             display_name: self.get_string(StringAttributeId::DisplayName)?,
             device_handle: self.get_string(StringAttributeId::DeviceHandle)?,
             ethernet_mac_address: self.get_string(StringAttributeId::EthernetMACAddress)?,
-            // TODO: free
-            serial_port_device_name: self.get_string(StringAttributeId::SerialPortDeviceName)?,
 
             profile_id: self.get_integer(IntegerAttributeId::ProfileID)?,
             max_audio_channels: self.get_integer(IntegerAttributeId::MaximumAudioChannels)?,
-            max_hdmi_audio_channels: self
-                .get_integer(IntegerAttributeId::MaximumHDMIAudioChannels)?,
             number_of_subdevices: self.get_integer(IntegerAttributeId::NumberOfSubDevices)?,
             subdevice_index: self.get_integer(IntegerAttributeId::SubDeviceIndex)?,
             persistent_id: self.get_integer(IntegerAttributeId::PersistentID)?,

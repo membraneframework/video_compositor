@@ -1,4 +1,6 @@
-use decklink::{get_decklinks, FlagAttributeId, IntegerAttributeId, VideoIOSupport};
+use decklink::{
+    get_decklinks, FlagAttributeId, IntegerAttributeId, StringAttributeId, VideoIOSupport,
+};
 
 use super::{DeckLinkError, DeckLinkOptions};
 
@@ -25,6 +27,12 @@ fn is_selected_decklink(
         }
     }
 
+    if let Some(display_name) = &opts.display_name {
+        if attr.get_string(StringAttributeId::DisplayName)?.as_ref() != Some(display_name) {
+            return Ok(false);
+        }
+    }
+
     let video_io_support = VideoIOSupport::from(
         attr.get_integer(IntegerAttributeId::VideoIOSupport)?
             .ok_or(DeckLinkError::NoCaptureSupport)?,
@@ -34,7 +42,7 @@ fn is_selected_decklink(
     }
 
     if attr.get_flag(FlagAttributeId::SupportsInputFormatDetection)? != Some(true) {
-        return Ok(false);
+        return Err(DeckLinkError::NoInputFormatDetection);
     }
 
     return Ok(true);

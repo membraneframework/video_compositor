@@ -37,13 +37,13 @@ fn main() {
 pub fn test() -> Result<(), DeckLinkError> {
     let decklinks = get_decklinks()?;
     println!("Detected {} decklinks", decklinks.len());
-    for deck in decklinks {
+    for deck in &decklinks {
         println!("{:#?}", deck.info()?);
     }
 
-    let decklink = decklinks[0];
+    let decklink = &decklinks[0];
 
-    let mut input = decklink.input()?;
+    let input = decklink.input()?;
     let mode = input.supports_video_mode(
         VideoConnection::HDMI,
         DisplayModeType::Mode4K2160p60,
@@ -61,6 +61,5 @@ pub fn test() -> Result<(), DeckLinkError> {
         },
     )?;
     input.enable_audio(48_000, AudioSampleType::Sample32bit, 2)?;
-
     return Ok(());
 }

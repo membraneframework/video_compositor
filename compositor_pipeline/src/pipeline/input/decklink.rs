@@ -3,12 +3,12 @@ use std::sync::Arc;
 use compositor_render::InputId;
 use tracing::{error, span, Level};
 
-use self::{capture::ChannelCallbackAdapter, connect_device::find_decklink};
+use self::{capture::ChannelCallbackAdapter, find_device::find_decklink};
 
 use super::{AudioInputReceiver, Input, InputInitInfo, InputInitResult, VideoInputReceiver};
 
 mod capture;
-mod connect_device;
+mod find_device;
 
 const AUDIO_SAMPLE_RATE: u32 = 48_000;
 
@@ -18,8 +18,10 @@ pub enum DeckLinkError {
     DecklinkError(#[from] decklink::DeckLinkError),
     #[error("DeckLink device with capture support was not detected.")]
     DeckLinkWithCaptureNotFound,
-    #[error("Selected device not support capture.")]
-    NoCaptureSupport
+    #[error("Selected device does not support capture.")]
+    NoCaptureSupport,
+    #[error("Selected device does not support input format detection.")]
+    NoInputFormatDetection,
 }
 
 pub struct DeckLinkOptions {
@@ -53,7 +55,7 @@ impl DeckLink {
                 ..Default::default()
             },
         )?;
-        input.enable_audio(AUDIO_SAMPLE_RATE, decklink::AudioSampleType::Sample32bit, 2)?;
+        input.enable_audio(AUDIO_SAMPLE_RATE, decklink::AudioSampleType::Sample16bit, 2)?;
 
         let (callback, video_receiver, audio_receiver) = ChannelCallbackAdapter::new(
             span,

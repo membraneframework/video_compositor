@@ -6,6 +6,7 @@ mod info;
 
 use api::into_video_io_support;
 
+use api::HResult;
 pub use enums::ffi::FlagAttributeId;
 pub use enums::ffi::FloatAttributeId;
 pub use enums::ffi::IntegerAttributeId;
@@ -43,8 +44,11 @@ pub enum DeckLinkError {
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
 
-    #[error("Decklink error code: {0:#x}")]
-    HResultError(u32),
+    #[error("Method {0} failed with {1:?}")]
+    DeckLinkCallFailed(&'static str, HResult),
+
+    #[error("Decklink error: {0:?}")]
+    HResultError(HResult),
 }
 
 impl From<i64> for VideoIOSupport {

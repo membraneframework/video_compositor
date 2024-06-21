@@ -159,63 +159,52 @@ input_supports_video_mode(IDeckLinkInput *input, VideoConnection conn,
   return into_display_mode_type(actual_mode);
 }
 
-void input_enable_video(IDeckLinkInput *input, DisplayModeType mode,
-                        PixelFormat format, VideoInputFlags flags) {
+HResult input_enable_video(IDeckLinkInput *input, DisplayModeType mode,
+                           PixelFormat format, VideoInputFlags flags) {
   auto result = input->EnableVideoInput(from_display_mode_type(mode),
                                         from_pixel_format(format),
                                         from_video_input_flags(flags));
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::EnableVideoInput failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_enable_audio(IDeckLinkInput *input, uint32_t sample_rate,
-                        AudioSampleType sample_type, uint32_t channels) {
+HResult input_enable_audio(IDeckLinkInput *input, uint32_t sample_rate,
+                           AudioSampleType sample_type, uint32_t channels) {
   auto result = input->EnableAudioInput(
       sample_rate, static_cast<uint32_t>(sample_type), channels);
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::EnableAudioInput failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_set_callback(IDeckLinkInput *input, rust::Box<DynInputCallback> cb) {
+HResult input_set_callback(IDeckLinkInput *input,
+                           rust::Box<DynInputCallback> cb) {
   auto wrapper = new InputCallbackWrapper(std::move(cb));
   auto result =
       input->SetCallback(static_cast<IDeckLinkInputCallback *>(wrapper));
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::SetCallback failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_start_streams(IDeckLinkInput *input) {
+HResult input_start_streams(IDeckLinkInput *input) {
   auto result = input->StartStreams();
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::StartStreams failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_stop_streams(IDeckLinkInput *input) {
+HResult input_stop_streams(IDeckLinkInput *input) {
   auto result = input->StopStreams();
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::StopStreams failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_pause_streams(IDeckLinkInput *input) {
+HResult input_pause_streams(IDeckLinkInput *input) {
   auto result = input->PauseStreams();
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::PauseStreams failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_flush_streams(IDeckLinkInput *input) {
+HResult input_flush_streams(IDeckLinkInput *input) {
   auto result = input->FlushStreams();
-  if (result != S_OK) {
-    throw std::runtime_error("IDeckLinkInput::FlushStreams failed.");
-  }
+  return static_cast<HResult>(result);
 }
 
-void input_release(IDeckLinkInput *input) { input->Release(); }
+HResult input_release(IDeckLinkInput *input) {
+  return static_cast<HResult>(input->Release());
+}
 
 //
 // IDeckLinkProfileManager
